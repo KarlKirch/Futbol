@@ -98,7 +98,7 @@
     }
 
     box.innerHTML = chatMessages.map(function (item) {
-      var own = currentUser && item.user_id === currentUser.id;
+      var own = currentUser && item.user_id === (currentPlayer?.id || currentUser.id);
       var name = own ? 'Sina' : playerName(item.user_id);
       return '<div class="chat-message ' + (own ? 'own' : '') + '">' +
         '<div class="chat-meta">' + esc(name) + ' · ' + esc(chatTimestamp(item.created_at)) + '</div>' +
@@ -135,7 +135,7 @@
     chatMessages.sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); });
     if (chatMessages.length > 100) chatMessages = chatMessages.slice(-100);
 
-    var own = currentUser && message.user_id === currentUser.id;
+    var own = currentUser && message.user_id === (currentPlayer?.id || currentUser.id);
     if (fromRealtime && !own && !isChatOpen()) {
       chatUnreadCount += 1;
       updateChatUnread();
@@ -181,7 +181,7 @@
     try {
       var result = await sb
         .from('chat_messages')
-        .insert({ user_id: currentUser.id, message: message })
+        .insert({ user_id: (currentPlayer?.id || currentUser.id), message: message })
         .select('id,user_id,message,created_at')
         .single();
       if (result.error) throw result.error;

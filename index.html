@@ -2010,8 +2010,8 @@
       <div id="nameError" class="error"></div>
 
       <div class="recovery-entry">
-        <div class="recovery-entry-title">Kasutasid Futboli varem teises telefonis või brauseris?</div>
-        <button class="btn btn-secondary btn-block" type="button" onclick="toggleRecoveryPanel()">Taasta varasem kasutaja</button>
+        <div class="recovery-entry-title">Kas sul on Futbol juba teises telefonis või arvutis?</div>
+        <button class="btn btn-secondary btn-block" type="button" onclick="toggleRecoveryPanel()">Kasuta olemasolevat kasutajat</button>
         <div id="recoveryPanel" class="hidden">
           <input id="recoveryInput" class="input" maxlength="20" autocomplete="off" placeholder="Sisesta taastekood" oninput="formatRecoveryInput(this)">
           <button class="btn btn-block" type="button" onclick="restorePlayer()">Taasta kasutaja</button>
@@ -2088,6 +2088,19 @@
           <li>Kui mäng läheb lisaajale, arvestatakse tulemust pärast lisaaega.</li>
           <li>Penaltiseeria väravaid lõppskoori hulka ei arvestata.</li>
           <li>Üldtabelis järjestatakse mängijad punktide järgi; võrdsete punktide korral annab eelise suurem täpsete skooride arv.</li>
+        </ul>
+      </div>
+
+
+      <div class="card">
+        <h3>Osalustasu ja osalemine</h3>
+        <ul class="rules-list">
+          <li>Futboli osalustasu on <strong>10 € inimese kohta</strong>.</li>
+          <li>Makse tehakse pangakontole: <strong>Oliver Ossipov</strong>, IBAN <strong>EE597700771005156592</strong>.</li>
+          <li>Iga mängija näeb Mängud lehel enda personaalset makseselgitust. Kasuta ülekandel täpselt seda selgitust, sest see sisaldab sinu nime ja unikaalset maksekoodi.</li>
+          <li>Ennustada saab ka enne makse kinnitamist, kuid ametlikku üldtabelisse ja voorude punktiarvestusse jõuab mängija alles pärast seda, kui admin on makse kinnitanud.</li>
+          <li>Osalustasu tavapärane tähtaeg on esimese avaldatud ennustusmängu algusaeg. Pärast tähtaega saab admin vajadusel osalemise erandina siiski kinnitada.</li>
+          <li>Makse staatust näed Mängud lehel: „Makse kinnitamata“, „Tähtaeg möödas“ või „✓ Makstud“.</li>
         </ul>
       </div>
 
@@ -2202,6 +2215,10 @@ const sb = window.supabase.createClient(
 
 let currentUser = null;
 let currentPlayer = null;
+
+function ownPlayerId() {
+  return currentPlayer?.id || currentUser?.id || null;
+}
 
 let matches = [];
 let predictions = [];
@@ -2659,18 +2676,15 @@ async function init() {
       session.user;
 
     const playerResult =
-      await sb
-        .from("players")
-        .select("*")
-        .eq("id", currentUser.id)
-        .maybeSingle();
+      await sb.rpc("get_current_player");
 
     if (playerResult.error) {
       throw playerResult.error;
     }
 
-    currentPlayer =
-      playerResult.data;
+    currentPlayer = Array.isArray(playerResult.data)
+      ? (playerResult.data[0] || null)
+      : (playerResult.data || null);
 
     document
       .getElementById("loadingScreen")
@@ -2725,7 +2739,7 @@ async function savePlayerName() {
     await sb
       .from("players")
       .insert({
-        id: currentUser.id,
+        id: ownPlayerId(),
         display_name: name
       })
       .select()
@@ -2744,7 +2758,7 @@ async function savePlayerName() {
         await sb
           .from("players")
           .insert({
-            id: currentUser.id,
+            id: ownPlayerId(),
             display_name: name
           })
           .select()
@@ -2908,6 +2922,7 @@ function isStandaloneMode() {
 
 
 
+
 function renderPlayerSummary() {
 
   const container = document.getElementById("playerSummary");
@@ -2916,7 +2931,7 @@ function renderPlayerSummary() {
     return;
   }
 
-  const row = leaderboard.find(item => item.player_id === currentUser.id);
+  const row = leaderboard.find(item => item.player_id === ownPlayerId());
   const points = row ? Number(row.total_points || 0) : 0;
   const rank = row ? row.rank_no : "–";
   const exact = row ? Number(row.exact_scores || 0) : 0;
@@ -2924,7 +2939,7 @@ function renderPlayerSummary() {
   const upcoming = matches.filter(match => !isStarted(match));
   const predictedUpcoming = upcoming.filter(match =>
     predictions.some(
-      p => p.match_id === match.id && p.user_id === currentUser.id
+      p => p.match_id === match.id && p.user_id === ownPlayerId()
     )
   );
   const missing = Math.max(0, upcoming.length - predictedUpcoming.length);
@@ -2990,7 +3005,7 @@ function renderRecoverySettings() {
   let html =
     '<div class="recovery-card">' +
       '<div class="recovery-card-title">Kasutaja taastamine</div>' +
-      '<div class="recovery-card-text">Taastekoodi on vaja selleks, et saaksid telefoni või brauseri vahetamisel oma Futboli kasutaja, punktid ja ennustused taastada.</div>';
+      '<div class="recovery-card-text">Taastekoodiga saad sama Futboli kasutaja avada ka teises telefonis või arvutis. Senine seade jääb samal ajal sisse logituks.</div>';
 
   if (latestRecoveryCode) {
     html +=
@@ -3008,7 +3023,44 @@ function renderRecoverySettings() {
     '<button class="btn btn-block" type="button" onclick="saveRecoveryCode()">Salvesta taastekood</button>' +
     '</div>';
 
+  html +=
+    '<div class="recovery-card" style="margin-top:12px">' +
+      '<div class="recovery-card-title">Sama kasutaja mitmes seadmes</div>' +
+      '<div class="recovery-card-text">Võid olla sama Futboli kasutajaga korraga sisse logitud telefonis ja arvutis. Teises seadmes sisesta selle kasutaja taastekood. Ühe seadme ühendamine ei logi teisi seadmeid välja.</div>' +
+      '<input id="deviceLinkCode" class="input" maxlength="20" autocomplete="off" placeholder="Sisesta olemasoleva kasutaja taastekood" oninput="formatRecoveryInput(this)" style="margin-top:10px">' +
+      '<button class="btn btn-secondary btn-block" type="button" onclick="linkThisDevice()">Seo see seade kasutajaga</button>' +
+    '</div>';
+
   container.innerHTML = html;
+}
+
+async function linkThisDevice() {
+  const input = document.getElementById('deviceLinkCode');
+  const code = String(input?.value || '').trim();
+  if (!code) {
+    toast('Sisesta taastekood.');
+    return;
+  }
+  const result = await sb.rpc('link_player_device', { p_code: code });
+  if (result.error) {
+    toast(friendlyError(result.error));
+    return;
+  }
+  const playerResult = await sb.rpc('get_current_player');
+  if (playerResult.error) {
+    toast(friendlyError(playerResult.error));
+    return;
+  }
+  currentPlayer = Array.isArray(playerResult.data) ? (playerResult.data[0] || null) : (playerResult.data || null);
+  if (!currentPlayer) {
+    toast('Kasutaja ühendamine ebaõnnestus.');
+    return;
+  }
+  document.getElementById('currentPlayer').textContent = currentPlayer.display_name;
+  latestRecoveryCode = '';
+  hasRecoveryCodeState = true;
+  toast('Seade on kasutajaga seotud. Teised seadmed jäid sisse logituks.');
+  await loadAll();
 }
 
 function toggleRecoveryPanel() {
@@ -3044,10 +3096,14 @@ async function restorePlayer() {
     return;
   }
 
-  currentPlayer = {
-    id: currentUser.id,
-    display_name: result.data
-  };
+  const linkedPlayerResult = await sb.rpc("get_current_player");
+  if (linkedPlayerResult.error) {
+    errorBox.textContent = friendlyError(linkedPlayerResult.error);
+    return;
+  }
+  currentPlayer = Array.isArray(linkedPlayerResult.data)
+    ? (linkedPlayerResult.data[0] || null)
+    : (linkedPlayerResult.data || null);
 
   hasRecoveryCodeState = true;
   latestRecoveryCode = "";
@@ -3283,7 +3339,7 @@ function setGamesFilter(filter) {
 
 function hasOwnPrediction(matchId) {
   return predictions.some(
-    p => p.match_id === matchId && p.user_id === currentUser.id
+    p => p.match_id === matchId && p.user_id === ownPlayerId()
   );
 }
 
@@ -3352,7 +3408,7 @@ function renderGames() {
       }
 
       const own = predictions.find(
-        p => p.match_id === match.id && p.user_id === currentUser.id
+        p => p.match_id === match.id && p.user_id === ownPlayerId()
       );
 
       const visiblePredictions = predictions
@@ -3495,7 +3551,7 @@ async function savePrediction(matchId) {
       .upsert(
         {
           match_id: matchId,
-          user_id: currentUser.id,
+          user_id: ownPlayerId(),
           home_score: home,
           away_score: away
         },
@@ -3545,7 +3601,7 @@ function renderLeaderboard() {
 
     const rank = Number(row.rank_no);
     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
-    const isSelf = currentUser && row.player_id === currentUser.id;
+    const isSelf = currentUser && row.player_id === ownPlayerId();
 
     html += '<tr class="' + (isSelf ? "leaderboard-self" : "") + '">' +
       '<td class="rank">' +
@@ -3767,7 +3823,7 @@ function renderAdmin() {
         '<div class="user-row">' +
           "<strong>" + esc(player.display_name) + "</strong>";
 
-      if (player.id === currentUser.id) {
+      if (player.id === ownPlayerId()) {
         html += '<span class="user-self">Sina</span>';
       } else {
         html +=
@@ -4265,7 +4321,7 @@ function togglePanel(id) {
 
 async function adminDeletePlayer(playerId) {
 
-  if (playerId === currentUser.id) {
+  if (playerId === ownPlayerId()) {
     toast("Enda kasutajat ei saa kustutada.");
     return;
   }
@@ -4751,7 +4807,7 @@ renderPlayerSummary = function() {
   const container = document.getElementById("playerSummary");
   if (!container || !currentUser) return;
 
-  const row = leaderboard.find(item => item.player_id === currentUser.id);
+  const row = leaderboard.find(item => item.player_id === ownPlayerId());
   const points = row ? Number(row.total_points || 0) : 0;
   const rank = row ? row.rank_no : "–";
   const exact = row ? Number(row.exact_scores || 0) : 0;
@@ -4845,7 +4901,7 @@ renderGames = function() {
       roundRows.forEach(match => {
         const started = isStarted(match);
         const done = isFinished(match);
-        const own = predictions.find(p => p.match_id === match.id && p.user_id === currentUser.id);
+        const own = predictions.find(p => p.match_id === match.id && p.user_id === ownPlayerId());
         const visiblePredictions = predictions.filter(p => p.match_id === match.id).sort((a, b) => playerName(a.user_id).localeCompare(playerName(b.user_id), "et"));
         let badgeClass = "badge-open", badgeText = "Avatud";
         if (started) { badgeClass = "badge-locked"; badgeText = "Lukus"; }
@@ -4919,7 +4975,7 @@ renderLeaderboard = function() {
   leaderboard.forEach(row => {
     const rank = Number(row.rank_no);
     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
-    const isSelf = currentUser && row.player_id === currentUser.id;
+    const isSelf = currentUser && row.player_id === ownPlayerId();
     html += '<tr class="' + (isSelf ? 'leaderboard-self' : '') + '"><td class="rank">' +
       (medal ? '<span class="rank-medal">' + medal + '</span>' : '') + row.rank_no + '</td>' +
       '<td class="' + (rank === 1 ? 'leader' : '') + '"><button class="player-name-btn" type="button" onclick="openPlayerStats(\'' + row.player_id + '\')">' + esc(row.player_name) + '</button>' +
@@ -5722,7 +5778,7 @@ async function savePredictionGroup(ids) {
     }
     rows.push({
       match_id: matchId,
-      user_id: currentUser.id,
+      user_id: ownPlayerId(),
       home_score: home,
       away_score: away,
       updated_at: new Date().toISOString()
@@ -5798,7 +5854,7 @@ function decorateGameCompetitionUX() {
       const m = matches.find(x => x.id === id);
       return m && !isStarted(m);
     });
-    const predicted = ids.filter(id => predictions.some(p => p.match_id === id && currentUser && p.user_id === currentUser.id)).length;
+    const predicted = ids.filter(id => predictions.some(p => p.match_id === id && currentUser && p.user_id === ownPlayerId())).length;
 
     if (!header.querySelector('.match-time-status')) {
       const status = document.createElement('span');
@@ -5957,7 +6013,7 @@ renderLeaderboard = function() {
   leaderboard.forEach(row => {
     const rank = Number(row.rank_no);
     const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-    const isSelf = currentUser && row.player_id === currentUser.id;
+    const isSelf = currentUser && row.player_id === ownPlayerId();
     const rs = roundStats.get(row.player_id) || { points: 0, exact: 0, predicted: 0 };
     const gapToLeader = Math.max(0, leaderPoints - Number(row.total_points || 0));
     html += '<tr class="' + (isSelf ? 'leaderboard-self' : '') + '">' +
@@ -6159,7 +6215,7 @@ renderLeaderboard = function() {
   leaderboard.forEach(row => {
     const rank = Number(row.rank_no);
     const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-    const isSelf = currentUser && row.player_id === currentUser.id;
+    const isSelf = currentUser && row.player_id === ownPlayerId();
     const total = Number(row.total_points || 0);
     const gapToLeader = Math.max(0, leaderPoints - total);
 
@@ -6374,7 +6430,7 @@ renderPlayerSummary = function() {
   const container = document.getElementById('playerSummary');
   if (!container || !currentUser) return;
 
-  const row = leaderboard.find(item => item.player_id === currentUser.id);
+  const row = leaderboard.find(item => item.player_id === ownPlayerId());
   const points = row ? Number(row.total_points || 0) : 0;
   const rank = row ? row.rank_no : '–';
   const exact = row ? Number(row.exact_scores || 0) : 0;
@@ -6599,6 +6655,11 @@ adminLogout = function() {
 
 
 
+
+
+
+
+// FUTBOL MULTI DEVICE ACCOUNTS
 
 init();
 
