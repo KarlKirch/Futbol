@@ -109,4 +109,4 @@ jobs:
             git push
           fi
 
-# Refresh: historical UCL stats and simpler chat
+# Refresh: historical UCL stats and fully hidden moderation controls
