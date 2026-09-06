@@ -1018,7 +1018,6 @@
 
       <div class="welcome-logo">FUTBOL</div>
       <div class="welcome-subtitle">CHAMPIONS LEAGUE</div>
-      <div class="welcome-subtitle">CHAMPIONS LEAGUE</div>
 
       <p>
         Ennusta sõpradega Champions League'i mängude tulemusi
@@ -1046,7 +1045,7 @@
         <div class="recovery-entry-title">Kasutasid Futboli varem teises telefonis või brauseris?</div>
         <button class="btn btn-secondary btn-block" type="button" onclick="toggleRecoveryPanel()">Taasta varasem kasutaja</button>
         <div id="recoveryPanel" class="hidden">
-          <input id="recoveryInput" class="input" maxlength="20" autocomplete="off" placeholder="Näiteks KARL2026" oninput="formatRecoveryInput(this)">
+          <input id="recoveryInput" class="input" maxlength="20" autocomplete="off" placeholder="Sisesta taastekood" oninput="formatRecoveryInput(this)">
           <button class="btn btn-block" type="button" onclick="restorePlayer()">Taasta kasutaja</button>
           <div id="recoveryError" class="error"></div>
         </div>
@@ -1123,6 +1122,8 @@
           <li>Üldtabelis järjestatakse mängijad punktide järgi; võrdsete punktide korral annab eelise suurem täpsete skooride arv.</li>
         </ul>
       </div>
+
+      <div id="recoverySettings"></div>
     </section>
 
     <section id="tab-admin" class="hidden">
@@ -1876,6 +1877,7 @@ async function loadAll() {
   renderPlayerSummary();
   renderGames();
   renderLeaderboard();
+  renderRecoverySettings();
 
   if (adminVerified) {
     await loadAdminPredictionCounts();
@@ -1923,27 +1925,6 @@ function renderPlayerSummary() {
       : '<div class="prediction-reminder done">Kõik tulevased mängud on ennustatud ✓</div>';
   }
 
-  let recoveryCard =
-    '<div class="recovery-card">' +
-      '<div class="recovery-card-title">Kasutaja taastamine</div>' +
-      '<div class="recovery-card-text">Vali endale lihtne, kuid teistele raskesti äraarvatav taastekood. Kasuta 8–20 tähte või numbrit, näiteks KARL2026.</div>';
-
-  if (latestRecoveryCode) {
-    recoveryCard +=
-      '<div class="recovery-code-box">' + esc(latestRecoveryCode) + '</div>' +
-      '<div class="recovery-actions">' +
-        '<button class="btn btn-secondary btn-small" type="button" onclick="copyRecoveryCode()">Kopeeri kood</button>' +
-      '</div>';
-  } else if (hasRecoveryCodeState) {
-    recoveryCard +=
-      '<div class="recovery-card-text"><strong>Taastekood on olemas.</strong> Soovi korral saad selle siin uue enda valitud koodiga asendada.</div>';
-  }
-
-  recoveryCard +=
-    '<input id="customRecoveryCode" class="input" maxlength="20" autocomplete="off" placeholder="Näiteks KARL2026" oninput="formatRecoveryInput(this)" style="margin-top:10px">' +
-    '<button class="btn btn-block" type="button" onclick="saveRecoveryCode()">Salvesta taastekood</button>' +
-    '</div>';
-
   const installCard = isStandaloneMode()
     ? ""
     : '<div class="install-card">' +
@@ -1986,8 +1967,35 @@ function renderPlayerSummary() {
         '<button class="share-app-btn" onclick="copyFutbolLink()">Kopeeri link</button>' +
       '</div>' +
     '</div>' +
-    recoveryCard +
     installCard;
+}
+
+function renderRecoverySettings() {
+  const container = document.getElementById("recoverySettings");
+  if (!container || !currentUser || !currentPlayer) return;
+
+  let html =
+    '<div class="recovery-card">' +
+      '<div class="recovery-card-title">Kasutaja taastamine</div>' +
+      '<div class="recovery-card-text">Taastekoodi on vaja selleks, et saaksid telefoni või brauseri vahetamisel oma Futboli kasutaja, punktid ja ennustused taastada.</div>';
+
+  if (latestRecoveryCode) {
+    html +=
+      '<div class="recovery-code-box">' + esc(latestRecoveryCode) + '</div>' +
+      '<div class="recovery-actions">' +
+        '<button class="btn btn-secondary btn-small" type="button" onclick="copyRecoveryCode()">Kopeeri kood</button>' +
+      '</div>';
+  } else if (hasRecoveryCodeState) {
+    html +=
+      '<div class="recovery-card-text"><strong>Taastekood on olemas.</strong> Uue koodi salvestamisel vana kood enam ei kehti.</div>';
+  }
+
+  html +=
+    '<input id="customRecoveryCode" class="input" maxlength="20" autocomplete="off" placeholder="Vali taastekood" oninput="formatRecoveryInput(this)" style="margin-top:10px">' +
+    '<button class="btn btn-block" type="button" onclick="saveRecoveryCode()">Salvesta taastekood</button>' +
+    '</div>';
+
+  container.innerHTML = html;
 }
 
 function toggleRecoveryPanel() {
@@ -2058,7 +2066,7 @@ async function saveRecoveryCode() {
 
   latestRecoveryCode = result.data || code;
   hasRecoveryCodeState = true;
-  renderPlayerSummary();
+  renderRecoverySettings();
   toast("Taastekood salvestatud.");
 }
 
