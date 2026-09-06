@@ -2,7 +2,7 @@ const CACHE_NAME = "futbol-champions-v5";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./chat.js?v=4",
+  "./chat.js?v=5",
   "./manifest.webmanifest",
   "./app-icon.svg",
   "./favicon.ico"
