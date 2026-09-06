@@ -100,6 +100,9 @@ jobs:
       - name: Remove top scorer example placeholder
         run: python remove_top_scorer_placeholder.py
 
+      - name: Refine match statistics to current form
+        run: python refine_match_stats_current_form.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -108,8 +111,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Remove top scorer example placeholder"
+            git commit -m "Refine match stats to current form"
             git push
           fi
 
-# Refresh: remove top scorer example placeholder
+# Refresh: current-form match statistics and persistent panel
