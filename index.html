@@ -500,6 +500,39 @@
       font-weight: 700;
     }
 
+    .date-picker-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 48px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .calendar-trigger {
+      height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: white;
+      color: var(--dark);
+      font-size: 21px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+
+    .calendar-trigger:active {
+      transform: translateY(1px);
+    }
+
+    .calendar-native {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 48px;
+      height: 48px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .user-row {
       display: flex;
       align-items: center;
@@ -947,6 +980,69 @@ function europeanKickoffToIso(dateValue, timeValue) {
     String(minute).padStart(2, "0");
 
   return tallinnLocalToIso(local);
+}
+
+function europeanDateToNative(value) {
+
+  const match = String(value || "").trim()
+    .match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+  if (!match) {
+    return "";
+  }
+
+  return match[3] + "-" + match[2] + "-" + match[1];
+}
+
+function nativeDateToEuropean(value) {
+
+  const match = String(value || "").trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return "";
+  }
+
+  return match[3] + "." + match[2] + "." + match[1];
+}
+
+function openDatePicker(nativeId, textId) {
+
+  const nativeInput = document.getElementById(nativeId);
+  const textInput = document.getElementById(textId);
+
+  if (!nativeInput || !textInput) {
+    return;
+  }
+
+  const nativeValue = europeanDateToNative(textInput.value);
+  if (nativeValue) {
+    nativeInput.value = nativeValue;
+  }
+
+  try {
+    if (typeof nativeInput.showPicker === "function") {
+      nativeInput.showPicker();
+    } else {
+      nativeInput.focus();
+      nativeInput.click();
+    }
+  } catch (error) {
+    nativeInput.focus();
+    nativeInput.click();
+  }
+}
+
+function syncDateFromPicker(nativeId, textId) {
+
+  const nativeInput = document.getElementById(nativeId);
+  const textInput = document.getElementById(textId);
+
+  if (!nativeInput || !textInput || !nativeInput.value) {
+    return;
+  }
+
+  textInput.value = nativeDateToEuropean(nativeInput.value);
 }
 
 function isStarted(match) {
@@ -1868,17 +1964,32 @@ function renderAdmin() {
             'placeholder="Näiteks Liverpool">' +
         "</div>" +
 
-        "<div>" +
-          "<label>Kuupäev (PP.KK.AAAA)</label>" +
+        '<div class="date-picker-row">' +
+          "<div>" +
+            "<label>Kuupäev (PP.KK.AAAA)</label>" +
+            '<input ' +
+              'id="newKickoffDate" ' +
+              'class="input" ' +
+              'type="text" ' +
+              'inputmode="numeric" ' +
+              'maxlength="10" ' +
+              'autocomplete="off" ' +
+              'placeholder="06.09.2026" ' +
+              'oninput="formatEuropeanDateInput(this)">' +
+          "</div>" +
+          '<button ' +
+            'type="button" ' +
+            'class="calendar-trigger" ' +
+            'aria-label="Vali kuupäev kalendrist" ' +
+            'title="Vali kuupäev kalendrist" ' +
+            'onclick="openDatePicker(\'newKickoffCalendar\', \'newKickoffDate\')">📅</button>' +
           '<input ' +
-            'id="newKickoffDate" ' +
-            'class="input" ' +
-            'type="text" ' +
-            'inputmode="numeric" ' +
-            'maxlength="10" ' +
-            'autocomplete="off" ' +
-            'placeholder="06.09.2026" ' +
-            'oninput="formatEuropeanDateInput(this)">' +
+            'id="newKickoffCalendar" ' +
+            'class="calendar-native" ' +
+            'type="date" ' +
+            'tabindex="-1" ' +
+            'aria-hidden="true" ' +
+            'onchange="syncDateFromPicker(\'newKickoffCalendar\', \'newKickoffDate\')">' +
         "</div>" +
 
         "<div>" +
@@ -2032,23 +2143,48 @@ function renderAdmin() {
                 '">' +
             "</div>" +
 
-            "<div>" +
-              "<label>Kuupäev (PP.KK.AAAA)</label>" +
+            '<div class="date-picker-row">' +
+              "<div>" +
+                "<label>Kuupäev (PP.KK.AAAA)</label>" +
+                '<input ' +
+                  'id="ekd-' +
+                  match.id +
+                  '" ' +
+                  'class="input" ' +
+                  'type="text" ' +
+                  'inputmode="numeric" ' +
+                  'maxlength="10" ' +
+                  'autocomplete="off" ' +
+                  'oninput="formatEuropeanDateInput(this)" ' +
+                  'value="' +
+                  formatDate(
+                    match.kickoff_at
+                  ) +
+                  '">' +
+              "</div>" +
+              '<button ' +
+                'type="button" ' +
+                'class="calendar-trigger" ' +
+                'aria-label="Vali kuupäev kalendrist" ' +
+                'title="Vali kuupäev kalendrist" ' +
+                'onclick="openDatePicker(\'ekc-' +
+                match.id +
+                '\', \'ekd-' +
+                match.id +
+                '\')">📅</button>' +
               '<input ' +
-                'id="ekd-' +
+                'id="ekc-' +
                 match.id +
                 '" ' +
-                'class="input" ' +
-                'type="text" ' +
-                'inputmode="numeric" ' +
-                'maxlength="10" ' +
-                'autocomplete="off" ' +
-                'oninput="formatEuropeanDateInput(this)" ' +
-                'value="' +
-                formatDate(
-                  match.kickoff_at
-                ) +
-                '">' +
+                'class="calendar-native" ' +
+                'type="date" ' +
+                'tabindex="-1" ' +
+                'aria-hidden="true" ' +
+                'onchange="syncDateFromPicker(\'ekc-' +
+                match.id +
+                '\', \'ekd-' +
+                match.id +
+                '\')">' +
             "</div>" +
 
             "<div>" +
