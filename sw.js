@@ -1,7 +1,8 @@
-const CACHE_NAME = "futbol-champions-v2";
+const CACHE_NAME = "futbol-champions-v4";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
+  "./chat.js?v=4",
   "./manifest.webmanifest",
   "./app-icon.svg",
   "./favicon.ico"
@@ -33,23 +34,29 @@ self.addEventListener("fetch", event => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("./index.html"))
+      fetch(request, { cache: "no-store" })
+        .then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put("./index.html", copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-
-      return fetch(request).then(response => {
+    fetch(request, { cache: "no-store" })
+      .then(response => {
         if (response && response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
 
@@ -80,7 +87,9 @@ self.addEventListener("push", event => {
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
-  const target = event.notification.data?.url || "./";
+  const target = event.notification.data && event.notification.data.url
+    ? event.notification.data.url
+    : "./";
 
   event.waitUntil((async () => {
     const windowClients = await clients.matchAll({
