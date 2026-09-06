@@ -1,0 +1,11 @@
+{
+  "name": "WOD – treeningutele registreerimine",
+  "short_name": "WOD",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f4",
+  "theme_color": "#0f1412",
+  "icons": [
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
