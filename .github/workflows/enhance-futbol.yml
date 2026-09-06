@@ -70,6 +70,9 @@ jobs:
       - name: Add user chat
         run: python add_chat_feature.py
 
+      - name: Fix chat startup
+        run: python fix_chat_boot.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -78,8 +81,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add user chat"
+            git commit -m "Fix chat startup"
             git push
           fi
 
-# Refresh: user chat
+# Refresh: chat startup fix
