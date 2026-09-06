@@ -52,6 +52,9 @@ jobs:
       - name: Add curated UCL match selection and history
         run: python add_curated_round_selection.py
 
+      - name: Group matches by day and simplify admin
+        run: python refine_round_day_ui.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -60,8 +63,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add curated Champions League match selection"
+            git commit -m "Group UCL matches by day and simplify admin"
             git push
           fi
 
-# Refresh: curated UCL selection and match history
+# Refresh: day grouping and simplified UCL admin
