@@ -855,6 +855,81 @@ function tallinnLocalToIso(value) {
   return new Date(guess).toISOString();
 }
 
+function formatEuropeanDateInput(input) {
+
+  const digits = input.value.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 2) {
+    input.value = digits;
+  } else if (digits.length <= 4) {
+    input.value = digits.slice(0, 2) + "." + digits.slice(2);
+  } else {
+    input.value =
+      digits.slice(0, 2) + "." +
+      digits.slice(2, 4) + "." +
+      digits.slice(4);
+  }
+}
+
+function formatEuropeanTimeInput(input) {
+
+  const digits = input.value.replace(/\D/g, "").slice(0, 4);
+
+  if (digits.length <= 2) {
+    input.value = digits;
+  } else {
+    input.value = digits.slice(0, 2) + ":" + digits.slice(2);
+  }
+}
+
+function europeanKickoffToIso(dateValue, timeValue) {
+
+  const dateMatch = String(dateValue || "").trim()
+    .match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+  const timeMatch = String(timeValue || "").trim()
+    .match(/^(\d{2}):(\d{2})$/);
+
+  if (!dateMatch || !timeMatch) {
+    return null;
+  }
+
+  const day = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const year = Number(dateMatch[3]);
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+
+  if (
+    year < 2000 ||
+    month < 1 || month > 12 ||
+    day < 1 || day > 31 ||
+    hour < 0 || hour > 23 ||
+    minute < 0 || minute > 59
+  ) {
+    return null;
+  }
+
+  const testDate = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    testDate.getUTCFullYear() !== year ||
+    testDate.getUTCMonth() !== month - 1 ||
+    testDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const local =
+    String(year).padStart(4, "0") + "-" +
+    String(month).padStart(2, "0") + "-" +
+    String(day).padStart(2, "0") + "T" +
+    String(hour).padStart(2, "0") + ":" +
+    String(minute).padStart(2, "0");
+
+  return tallinnLocalToIso(local);
+}
+
 function isStarted(match) {
 
   return (
@@ -1740,11 +1815,29 @@ function renderAdmin() {
         "</div>" +
 
         "<div>" +
-          "<label>Mängu algus – Eesti aeg</label>" +
+          "<label>Kuupäev (PP.KK.AAAA)</label>" +
           '<input ' +
-            'id="newKickoff" ' +
+            'id="newKickoffDate" ' +
             'class="input" ' +
-            'type="datetime-local">' +
+            'type="text" ' +
+            'inputmode="numeric" ' +
+            'maxlength="10" ' +
+            'autocomplete="off" ' +
+            'placeholder="06.09.2026" ' +
+            'oninput="formatEuropeanDateInput(this)">' +
+        "</div>" +
+
+        "<div>" +
+          "<label>Kellaaeg (24 h)</label>" +
+          '<input ' +
+            'id="newKickoffTime" ' +
+            'class="input" ' +
+            'type="text" ' +
+            'inputmode="numeric" ' +
+            'maxlength="5" ' +
+            'autocomplete="off" ' +
+            'placeholder="19:30" ' +
+            'oninput="formatEuropeanTimeInput(this)">' +
         "</div>" +
 
       "</div>" +
@@ -1886,15 +1979,38 @@ function renderAdmin() {
             "</div>" +
 
             "<div>" +
-              "<label>Mängu algus – Eesti aeg</label>" +
+              "<label>Kuupäev (PP.KK.AAAA)</label>" +
               '<input ' +
-                'id="ek-' +
+                'id="ekd-' +
                 match.id +
                 '" ' +
                 'class="input" ' +
-                'type="datetime-local" ' +
+                'type="text" ' +
+                'inputmode="numeric" ' +
+                'maxlength="10" ' +
+                'autocomplete="off" ' +
+                'oninput="formatEuropeanDateInput(this)" ' +
                 'value="' +
-                isoToTallinnInput(
+                formatDate(
+                  match.kickoff_at
+                ) +
+                '">' +
+            "</div>" +
+
+            "<div>" +
+              "<label>Kellaaeg (24 h)</label>" +
+              '<input ' +
+                'id="ekt-' +
+                match.id +
+                '" ' +
+                'class="input" ' +
+                'type="text" ' +
+                'inputmode="numeric" ' +
+                'maxlength="5" ' +
+                'autocomplete="off" ' +
+                'oninput="formatEuropeanTimeInput(this)" ' +
+                'value="' +
+                formatTime(
                   match.kickoff_at
                 ) +
                 '">' +
@@ -2097,12 +2213,17 @@ async function adminCreateMatch() {
       .value
       .trim();
 
-  const local =
+  const dateValue =
     document
-      .getElementById("newKickoff")
+      .getElementById("newKickoffDate")
       .value;
 
-  if (!home || !away || !local) {
+  const timeValue =
+    document
+      .getElementById("newKickoffTime")
+      .value;
+
+  if (!home || !away || !dateValue || !timeValue) {
 
     toast(
       "Täida kõik mängu väljad."
@@ -2112,7 +2233,16 @@ async function adminCreateMatch() {
   }
 
   const kickoff =
-    tallinnLocalToIso(local);
+    europeanKickoffToIso(dateValue, timeValue);
+
+  if (!kickoff) {
+
+    toast(
+      "Sisesta kuupäev kujul PP.KK.AAAA ja kellaaeg 24 tunni kujul HH:MM."
+    );
+
+    return;
+  }
 
   const result =
     await sb.rpc(
@@ -2161,15 +2291,31 @@ async function adminUpdateMatch(matchId) {
       .value
       .trim();
 
-  const local =
+  const dateValue =
     document
       .getElementById(
-        "ek-" + matchId
+        "ekd-" + matchId
+      )
+      .value;
+
+  const timeValue =
+    document
+      .getElementById(
+        "ekt-" + matchId
       )
       .value;
 
   const kickoff =
-    tallinnLocalToIso(local);
+    europeanKickoffToIso(dateValue, timeValue);
+
+  if (!kickoff) {
+
+    toast(
+      "Sisesta kuupäev kujul PP.KK.AAAA ja kellaaeg 24 tunni kujul HH:MM."
+    );
+
+    return;
+  }
 
   const result =
     await sb.rpc(
