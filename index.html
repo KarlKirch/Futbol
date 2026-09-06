@@ -3241,6 +3241,7 @@ function isStandaloneMode() {
 
 
 
+
 function renderPlayerSummary() {
 
   const container = document.getElementById("playerSummary");
@@ -7857,17 +7858,17 @@ function teamRecentStatsHtml(team) {
   const strip = recent.map(row => '<span class="current-form-pill ' + statsResultClass(row.result) + '" title="' + esc(row.home_team + ' ' + row.home_score + ':' + row.away_score + ' ' + row.away_team) + '">' + statsResultText(row.result) + '</span>').join('');
   const rows = recent.map(row => {
     const own = String(team?.team || '').toLowerCase();
-    const homeIsOwn = String(row.home_team || '').toLowerCase() === own;
+    const homeIsOwn = typeof row.is_home === 'boolean' ? row.is_home : String(row.home_team || '').toLowerCase() === own;
     const opponent = homeIsOwn ? row.away_team : row.home_team;
     const venue = homeIsOwn ? 'Kodus' : 'Võõrsil';
     return '<div class="current-match-row">' +
       '<span class="current-result-badge ' + statsResultClass(row.result) + '">' + statsResultText(row.result) + '</span>' +
       '<div class="current-match-main"><div class="current-match-opponent">' + esc(opponent || '') + '</div>' +
       '<div class="current-match-meta">' + esc(statsShortDate(row.date)) + ' · ' + esc(row.competition || '') + ' · ' + venue + '</div></div>' +
-      '<div class="current-match-score">' + Number(row.home_score) + ':' + Number(row.away_score) + '</div>' +
+      '<div class="current-match-score">' + esc(row.score_text || (Number(row.home_score) + ':' + Number(row.away_score))) + '</div>' +
     '</div>';
   }).join('');
-  return '<div class="current-form-strip">' + strip + '</div><div class="current-recent-title">Viimased 5 ametlikku mängu</div>' + rows;
+  return '<div class="current-form-strip">' + strip + '</div><div class="current-recent-title">Viimased 5 mängu · kõik sarjad</div>' + rows;
 }
 
 function teamSeasonStatsHtml(team, season) {
@@ -7895,14 +7896,14 @@ function currentTeamStatsHtml(team, season) {
 function currentH2hHtml(data) {
   const h2h = Array.isArray(data?.h2h) ? data.h2h : [];
   if (!h2h.length) return '';
-  return '<div class="current-h2h"><div class="current-h2h-title">Omavahelised Champions League’i mängud</div>' +
-    h2h.map(row => '<div class="current-h2h-row"><span>' + esc(row.season || '') + '</span><span>' + esc(row.home_team || '') + ' – ' + esc(row.away_team || '') + '</span><strong>' + Number(row.home_score) + ':' + Number(row.away_score) + '</strong></div>').join('') +
+  return '<div class="current-h2h"><div class="current-h2h-title">Omavahelised mängud</div>' +
+    h2h.map(row => '<div class="current-h2h-row"><span>' + esc(statsShortDate(row.date)) + '</span><span>' + (row.competition ? '<strong>' + esc(row.competition) + '</strong> · ' : '') + esc(row.home_team || '') + ' – ' + esc(row.away_team || '') + '</span><strong>' + Number(row.home_score) + ':' + Number(row.away_score) + '</strong></div>').join('') +
   '</div>';
 }
 
 function currentMatchStatsHtml(data) {
   return '<div class="current-stats-head"><div><div class="current-stats-title">Hetkevorm ja hooaja seis</div>' +
-    '<div class="current-stats-subtitle">Viimased tulemused, koduliiga hetkeseis ja käimasoleva CL hooaja statistika.</div></div>' +
+    '<div class="current-stats-subtitle">Viimased mängud kõigist sarjadest, koduliiga hetkeseis ja käimasoleva CL hooaja statistika.</div></div>' +
     '<div class="current-stats-season">' + esc(data?.season || '') + '</div></div>' +
     '<div class="current-team-grid">' + currentTeamStatsHtml(data?.home, data?.season) + currentTeamStatsHtml(data?.away, data?.season) + '</div>' +
     currentH2hHtml(data) +
@@ -7977,6 +7978,9 @@ renderGames = function() {
 };
 
 
+
+
+
 init();
 
 setInterval(() => {
@@ -7997,6 +8001,8 @@ setInterval(() => {
 }, 30000);
 
 </script>
+
+<script src="./chat.js?v=6"></script>
 
 <script src="./chat.js?v=6"></script>
 
