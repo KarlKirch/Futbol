@@ -97,6 +97,9 @@ jobs:
       - name: Add historical UCL stats and simplify chat
         run: python add_historical_stats_simplify_chat.py
 
+      - name: Remove top scorer example placeholder
+        run: python remove_top_scorer_placeholder.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -105,8 +108,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add historical UCL stats and simplify chat"
+            git commit -m "Remove top scorer example placeholder"
             git push
           fi
 
-# Refresh: historical UCL stats and fully hidden moderation controls
+# Refresh: remove top scorer example placeholder
