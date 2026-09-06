@@ -55,6 +55,9 @@ jobs:
       - name: Group matches by day and simplify admin
         run: python refine_round_day_ui.py
 
+      - name: Group matches by kickoff time
+        run: python group_ucl_by_time.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -63,8 +66,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Group UCL matches by day and simplify admin"
+            git commit -m "Group UCL matches by day and kickoff time"
             git push
           fi
 
-# Refresh: day grouping and simplified UCL admin
+# Refresh: day and kickoff-time grouping
