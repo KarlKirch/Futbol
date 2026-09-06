@@ -34,6 +34,9 @@ jobs:
       - name: Add competition UX improvements
         run: python add_competition_ux.py
 
+      - name: Add Champions League features
+        run: python add_champions_features.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -42,8 +45,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add prediction filters medals and admin counts"
+            git commit -m "Add recovery stats PWA and Champions League branding"
             git push
           fi
 
-# Refresh: competition UX improvements
+# Refresh: Champions League recovery stats and PWA
