@@ -49,6 +49,9 @@ jobs:
       - name: Fix UCL sync error handling
         run: python fix_ucl_sync_ui.py
 
+      - name: Add curated UCL match selection and history
+        run: python add_curated_round_selection.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -57,8 +60,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Fix Champions League automatic sync"
+            git commit -m "Add curated Champions League match selection"
             git push
           fi
 
-# Refresh: robust UCL automatic sync
+# Refresh: curated UCL selection and match history
