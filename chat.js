@@ -101,7 +101,7 @@
       var own = currentUser && item.user_id === (currentPlayer?.id || currentUser.id);
       var name = own ? 'Sina' : playerName(item.user_id);
       return '<div class="chat-message ' + (own ? 'own' : '') + '">' +
-        '<div class="chat-meta">' + esc(name) + ' · ' + esc(chatTimestamp(item.created_at)) + '</div>' +
+        '<div class="chat-meta"><span class="chat-name">' + esc(name) + '</span><span class="chat-time"> · ' + esc(chatTimestamp(item.created_at)) + '</span></div>' +
         '<div class="chat-bubble">' + esc(item.message) + '</div>' +
       '</div>';
     }).join('');

@@ -1969,6 +1969,20 @@
       font-weight: 750;
     }
 
+
+
+    /* FUTBOL CHAT NAME EMPHASIS */
+    .chat-meta .chat-name {
+      color: #20283b;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .chat-meta .chat-time {
+      color: #7b8396;
+      font-size: 10px;
+      font-weight: 750;
+    }
+
   </style>
 </head>
 
@@ -2096,6 +2110,7 @@
         <h3>Osalustasu ja osalemine</h3>
         <ul class="rules-list">
           <li>Futboli osalustasu on <strong>10 € inimese kohta</strong>.</li>
+          <li>Kogutud osalustasude summa jaguneb esikolmiku vahel: <strong>1. koht 50%</strong>, <strong>2. koht 30%</strong> ja <strong>3. koht 20%</strong>.</li>
           <li>Makse tehakse pangakontole: <strong>Oliver Ossipov</strong>, IBAN <strong>EE597700771005156592</strong>.</li>
           <li>Iga mängija näeb Mängud lehel enda personaalset makseselgitust. Kasuta ülekandel täpselt seda selgitust, sest see sisaldab sinu nime ja unikaalset maksekoodi.</li>
           <li>Ennustada saab ka enne makse kinnitamist, kuid ametlikku üldtabelisse ja voorude punktiarvestusse jõuab mängija alles pärast seda, kui admin on makse kinnitanud.</li>
@@ -2910,6 +2925,7 @@ function isStandaloneMode() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
 }
+
 
 
 
@@ -6708,6 +6724,9 @@ renderRecoverySettings = function() {
   __paidRulesBaseRenderRecoverySettings();
   renderPaidRulesStatus();
 };
+
+
+
 
 
 init();
