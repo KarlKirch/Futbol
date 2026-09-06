@@ -3194,6 +3194,7 @@ function isStandaloneMode() {
 
 
 
+
 function renderPlayerSummary() {
 
   const container = document.getElementById("playerSummary");
@@ -7116,7 +7117,7 @@ function bonusHomeCardHtmlDeep() {
     '<div class="bonus-question"><label><span>Champions League’i võitja</span><span class="bonus-points-pill">+10 p</span></label>' +
       '<select id="bonus-ucl_winner" class="input">' + winnerOptions + '</select></div>' +
     '<div class="bonus-question"><label><span>Suurim väravakütt</span><span class="bonus-points-pill">+10 p</span></label>' +
-      '<input id="bonus-top_scorer" class="input" maxlength="120" autocomplete="off" placeholder="Näiteks Kylian Mbappé" value="' + esc(scorer?.my_answer || '') + '"></div>' +
+      '<input id="bonus-top_scorer" class="input" maxlength="120" autocomplete="off" placeholder="" value="' + esc(scorer?.my_answer || '') + '"></div>' +
     '<button class="btn btn-block" type="button" onclick="saveBonusPredictionsDeep()">' + (answered === bonusQuestionsState.length ? 'Uuenda boonuse vastuseid' : 'Salvesta mõlemad vastused') + '</button>' +
     '<div class="bonus-deadline">' + (deadline ? 'Vastused lukustuvad ' + formatDate(deadline) + ' kell ' + formatTime(deadline) + '.' : 'Lukustusaeg tekib automaatselt, kui 1. vooru mängud on avaldatud.') + '</div>' +
   '</div>';
@@ -7776,6 +7777,9 @@ renderAdmin = function() {
 
 
 
+
+
+
 init();
 
 setInterval(() => {
@@ -7796,6 +7800,8 @@ setInterval(() => {
 }, 30000);
 
 </script>
+
+<script src="./chat.js?v=6"></script>
 
 <script src="./chat.js?v=6"></script>
 
