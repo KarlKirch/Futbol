@@ -28,6 +28,9 @@ jobs:
       - name: Fix stale anonymous sessions
         run: python fix_stale_auth.py
 
+      - name: Add core UX improvements
+        run: python add_core_ux.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -36,8 +39,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Recover deleted anonymous user sessions"
+            git commit -m "Add rules countdown and grouped matches"
             git push
           fi
 
-# Refresh: stale anonymous session recovery
+# Refresh: rules countdown prediction status and match groups
