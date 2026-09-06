@@ -96,16 +96,13 @@
       box.innerHTML = '<div class="chat-empty">Vestlus on veel tühi. Kirjuta esimene sõnum.</div>';
       return;
     }
-
-    var pinnedMessages = chatMessages.filter(function (item) { return !!item.pinned; });
-    var regularMessages = chatMessages.filter(function (item) { return !item.pinned; });
-    box.innerHTML = pinnedMessages.concat(regularMessages).map(function (item) {
+    box.innerHTML = chatMessages.map(function (item) {
       var own = currentUser && item.user_id === (currentPlayer?.id || currentUser.id);
       var name = own ? 'Sina' : playerName(item.user_id);
       var favorite = (typeof chatFavoriteMini === 'function') ? chatFavoriteMini(item.user_id) : '';
       var adminDelete = (typeof adminVerified !== 'undefined' && adminVerified)
         ? '<button class="chat-admin-delete" type="button" onclick="adminDeleteChatMessageDeep(' + item.id + ')">Kustuta</button>' : '';
-      return '<div class="chat-message ' + (own ? 'own ' : '') + (item.is_announcement ? 'announcement' : '') + '">' +
+      return '<div class="chat-message ' + (own ? 'own' : '') + '">' +
         '<div class="chat-meta"><span class="chat-name">' + esc(name) + '</span>' + favorite + (item.pinned ? '<span class="chat-pin-label">📌 TEADAANNE</span>' : '') + '<span class="chat-time"> · ' + esc(chatTimestamp(item.created_at)) + '</span>' + adminDelete + '</div>' +
         '<div class="chat-bubble">' + esc(item.message) + '</div>' +
       '</div>';
