@@ -64,6 +64,9 @@ jobs:
       - name: Add gap to leader in leaderboard
         run: python add_leader_gap.py
 
+      - name: Add dynamic round columns to leaderboard
+        run: python dynamic_round_leaderboard.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -72,8 +75,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Show gap to leader in leaderboard"
+            git commit -m "Show completed rounds as leaderboard columns"
             git push
           fi
 
-# Refresh: leaderboard leader gap
+# Refresh: dynamic leaderboard round columns
