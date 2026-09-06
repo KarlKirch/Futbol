@@ -87,7 +87,6 @@ if "function europeanKickoffToIso(" not in text:
         raise SystemExit("Time helper anchor not found")
     text = text.replace(helper_anchor, helper_code + helper_anchor, 1)
 
-# Replace the add-match datetime-local input with explicit DD.MM.YYYY + 24h HH:MM inputs.
 old_add = '''        "<div>" +
           "<label>Mängu algus – Eesti aeg</label>" +
           '<input ' +
@@ -127,7 +126,6 @@ if 'id="newKickoff" ' in text:
         raise SystemExit("Add-match datetime block not found")
     text = text.replace(old_add, new_add, 1)
 
-# Replace edit-match datetime-local input similarly.
 old_edit = '''            "<div>" +
               "<label>Mängu algus – Eesti aeg</label>" +
               '<input ' +
@@ -186,7 +184,6 @@ if 'id="ek-' in text:
         raise SystemExit("Edit-match datetime block not found")
     text = text.replace(old_edit, new_edit, 1)
 
-# Update add-match handler.
 old_create_logic = '''  const local =
     document
       .getElementById("newKickoff")
@@ -240,7 +237,6 @@ if 'getElementById("newKickoff")' in text:
         raise SystemExit("Create handler datetime logic not found")
     text = text.replace(old_create_logic, new_create_logic, 1)
 
-# Update edit-match handler.
 old_update_logic = '''  const local =
     document
       .getElementById(
@@ -281,5 +277,124 @@ if '"ek-" + matchId' in text:
     if old_update_logic not in text:
         raise SystemExit("Update handler datetime logic not found")
     text = text.replace(old_update_logic, new_update_logic, 1)
+
+# Admin user management UI.
+css_anchor = "    .admin-actions {\n"
+css_code = '''    .user-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #edf1ee;
+    }
+
+    .user-row:last-child {
+      border-bottom: 0;
+    }
+
+    .user-self {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+'''
+if ".user-row {" not in text:
+    if css_anchor not in text:
+        raise SystemExit("User CSS anchor not found")
+    text = text.replace(css_anchor, css_code + css_anchor, 1)
+
+admin_users_anchor = '''  html +=
+    '<div class="card">' +
+
+      "<h3>Lisa mäng</h3>" +'''
+admin_users_code = '''  html +=
+    '<div class="card">' +
+      "<h3>Kasutajad</h3>" +
+      '<div class="hint" style="text-align:left;margin-bottom:8px">' +
+        "Kasutaja kustutamisel kustutatakse ka tema kõik ennustused." +
+      "</div>";
+
+  [...players]
+    .sort((a, b) =>
+      a.display_name.localeCompare(b.display_name, "et")
+    )
+    .forEach(player => {
+
+      html +=
+        '<div class="user-row">' +
+          "<strong>" + esc(player.display_name) + "</strong>";
+
+      if (player.id === currentUser.id) {
+        html += '<span class="user-self">Sina</span>';
+      } else {
+        html +=
+          '<button ' +
+            'class="btn btn-danger btn-small" ' +
+            'onclick="adminDeletePlayer(\\'' +
+            player.id +
+            '\\')">' +
+            "Kustuta" +
+          "</button>";
+      }
+
+      html += "</div>";
+    });
+
+  html += "</div>";
+
+'''
+if "<h3>Kasutajad</h3>" not in text:
+    if admin_users_anchor not in text:
+        raise SystemExit("Admin users insertion anchor not found")
+    text = text.replace(admin_users_anchor, admin_users_code + admin_users_anchor, 1)
+
+function_anchor = "async function adminCreateMatch() {\n"
+function_code = r'''async function adminDeletePlayer(playerId) {
+
+  if (playerId === currentUser.id) {
+    toast("Enda kasutajat ei saa kustutada.");
+    return;
+  }
+
+  const player = players.find(p => p.id === playerId);
+
+  if (!player) {
+    toast("Kasutajat ei leitud.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Kas kustutada kasutaja " + player.display_name +
+    "? Kõik tema ennustused kustutatakse samuti."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const result = await sb.rpc(
+    "admin_delete_player",
+    {
+      p_pin: adminPin,
+      p_player_id: playerId
+    }
+  );
+
+  if (result.error) {
+    toast(friendlyError(result.error));
+    return;
+  }
+
+  toast("Kasutaja " + player.display_name + " kustutatud.");
+  await loadAll();
+}
+
+'''
+if "async function adminDeletePlayer(" not in text:
+    if function_anchor not in text:
+        raise SystemExit("Delete-player function anchor not found")
+    text = text.replace(function_anchor, function_code + function_anchor, 1)
 
 path.write_text(text, encoding="utf-8")
