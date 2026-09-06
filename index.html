@@ -2100,9 +2100,11 @@
           <li>Iga mängija näeb Mängud lehel enda personaalset makseselgitust. Kasuta ülekandel täpselt seda selgitust, sest see sisaldab sinu nime ja unikaalset maksekoodi.</li>
           <li>Ennustada saab ka enne makse kinnitamist, kuid ametlikku üldtabelisse ja voorude punktiarvestusse jõuab mängija alles pärast seda, kui admin on makse kinnitanud.</li>
           <li>Osalustasu tavapärane tähtaeg on esimese avaldatud ennustusmängu algusaeg. Pärast tähtaega saab admin vajadusel osalemise erandina siiski kinnitada.</li>
-          <li>Makse staatust näed Mängud lehel: „Makse kinnitamata“, „Tähtaeg möödas“ või „✓ Makstud“.</li>
+          <li>Kuni makse kinnitamiseni näed makseinfot Mängud lehel. Pärast admini kinnitust kaob maksekaart Mängud lehelt ja kinnitatud makse staatus liigub Reeglite alla.</li>
         </ul>
       </div>
+
+      <div id="paidRulesStatus"></div>
 
       <div id="recoverySettings"></div>
     </section>
@@ -2908,6 +2910,7 @@ function isStandaloneMode() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
 }
+
 
 
 
@@ -6660,6 +6663,52 @@ adminLogout = function() {
 
 
 // FUTBOL MULTI DEVICE ACCOUNTS
+
+
+
+
+// FUTBOL PAID STATUS IN RULES
+const __paidRulesBasePaymentCardHtml = paymentCardHtml;
+paymentCardHtml = function() {
+  if (paymentInfo && paymentInfo.is_paid) return '';
+  return __paidRulesBasePaymentCardHtml();
+};
+
+function paidRulesStatusHtml() {
+  if (!paymentInfo || !paymentInfo.is_paid) return '';
+  const amount = paymentAmountText(paymentInfo.amount);
+  const paidDate = paymentInfo.paid_at
+    ? formatDate(paymentInfo.paid_at) + ' kell ' + formatTime(paymentInfo.paid_at)
+    : '';
+
+  return '<div class="card payment-card paid">' +
+    '<div class="payment-status-line">' +
+      '<div><div class="payment-status-title">Osalustasu ' + esc(amount) + '</div>' +
+      '<div class="hint" style="text-align:left;margin-top:2px">Sinu osalemine on kinnitatud ja punktid lähevad ametlikku tabelisse.</div></div>' +
+      '<span class="payment-status-badge">✓ Makstud</span>' +
+    '</div>' +
+    (paidDate ? '<div class="payment-deadline">Admin kinnitas makse: ' + esc(paidDate) + '.</div>' : '') +
+  '</div>';
+}
+
+function renderPaidRulesStatus() {
+  const mount = document.getElementById('paidRulesStatus');
+  if (!mount) return;
+  mount.innerHTML = paidRulesStatusHtml();
+}
+
+const __paidRulesBaseLoadAll = loadAll;
+loadAll = async function() {
+  await __paidRulesBaseLoadAll();
+  renderPaidRulesStatus();
+};
+
+const __paidRulesBaseRenderRecoverySettings = renderRecoverySettings;
+renderRecoverySettings = function() {
+  __paidRulesBaseRenderRecoverySettings();
+  renderPaidRulesStatus();
+};
+
 
 init();
 
