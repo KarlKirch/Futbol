@@ -2187,6 +2187,7 @@
 
     /* FUTBOL HISTORICAL UCL STATS + SIMPLE CHAT */
     #adminChatDeep { display: none !important; }
+    .chat-admin-delete, .chat-pin-label { display: none !important; }
     .historical-stats-head {
       display:flex;
       justify-content:space-between;
@@ -3172,6 +3173,7 @@ function isStandaloneMode() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
 }
+
 
 
 
@@ -7771,6 +7773,9 @@ renderAdmin = function() {
 };
 
 
+
+
+
 init();
 
 setInterval(() => {
@@ -7791,6 +7796,8 @@ setInterval(() => {
 }, 30000);
 
 </script>
+
+<script src="./chat.js?v=6"></script>
 
 <script src="./chat.js?v=6"></script>
 
