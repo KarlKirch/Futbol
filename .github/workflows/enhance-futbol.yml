@@ -27,6 +27,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add player summary and share button"
+            git commit -m "Use European date and 24-hour time inputs"
             git push
           fi
+
+# Refresh: European date format and 24-hour clock
