@@ -85,6 +85,9 @@ jobs:
       - name: Move confirmed payment status to rules
         run: python move_paid_status_to_rules.py
 
+      - name: Add prize split and clearer chat names
+        run: python update_prizes_chat_names.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -93,8 +96,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Move confirmed payment status to rules"
+            git commit -m "Add prize split and clearer chat names"
             git push
           fi
 
-# Refresh: confirmed payment status placement
+# Refresh: prize split and chat author emphasis
