@@ -25,6 +25,9 @@ jobs:
       - name: Add quick-share apps
         run: python add_share_apps.py
 
+      - name: Fix stale anonymous sessions
+        run: python fix_stale_auth.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -33,8 +36,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add quick-share app buttons"
+            git commit -m "Recover deleted anonymous user sessions"
             git push
           fi
 
-# Refresh: quick-share apps
+# Refresh: stale anonymous session recovery
