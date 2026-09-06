@@ -40,6 +40,9 @@ jobs:
       - name: Add custom recovery code UI
         run: python custom_recovery_code.py
 
+      - name: Move recovery settings to rules
+        run: python move_recovery_to_rules.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -48,8 +51,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Let players choose their recovery code"
+            git commit -m "Move recovery settings to rules"
             git push
           fi
 
-# Refresh: custom recovery code UI
+# Refresh: move recovery settings to rules
