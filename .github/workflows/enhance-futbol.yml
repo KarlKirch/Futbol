@@ -46,6 +46,9 @@ jobs:
       - name: Add UCL rounds logos and import UI
         run: python add_ucl_advanced_features.py
 
+      - name: Fix UCL sync error handling
+        run: python fix_ucl_sync_ui.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -54,8 +57,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add Champions League rounds logos and auto sync"
+            git commit -m "Fix Champions League automatic sync"
             git push
           fi
 
-# Refresh: UCL rounds logos bulk add and automatic sync
+# Refresh: robust UCL automatic sync
