@@ -2112,6 +2112,7 @@ function isStandaloneMode() {
 
 
 
+
 function renderPlayerSummary() {
 
   const container = document.getElementById("playerSummary");
@@ -3933,7 +3934,10 @@ async function syncChampionsLeague(showMessage = false) {
     const result = await sb.functions.invoke("sync-champions-league", { body: {} });
     if (result.error) throw result.error;
     const data = result.data || {};
-    const changed = Number(data.fixtures_synced || 0) > 0 || Number(data.logos_synced || 0) > 0;
+    if (data.ok === false) {
+      throw new Error(data.error || "Champions League’i andmete uuendamine ebaõnnestus.");
+    }
+    const changed = Number(data.inserted || 0) > 0 || Number(data.updated || 0) > 0 || Number(data.logos_synced || 0) > 0;
     if (showMessage) {
       if (changed) toast('Champions League’i andmed uuendatud.');
       else toast('Champions League’i andmed on juba värsked.');
