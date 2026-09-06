@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#10251b"/>
+  <circle cx="256" cy="214" r="116" fill="#ffffff" opacity="0.98"/>
+  <path d="M256 110l43 31-16 51h-54l-16-51 43-31zm-100 73l50 8 17 51-40 30-43-30 16-59zm200 0l16 59-43 30-40-30 17-51 50-8zm-141 92h82l25 50-31 45h-70l-31-45 25-50z" fill="#176b43"/>
+  <text x="256" y="432" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="58" font-weight="800" letter-spacing="5">FUTBOL</text>
+  <text x="256" y="477" text-anchor="middle" fill="#cddbd2" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="3">CHAMPIONS</text>
+</svg>
