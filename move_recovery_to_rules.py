@@ -3,7 +3,7 @@ from pathlib import Path
 path = Path("index.html")
 text = path.read_text(encoding="utf-8")
 
-# Clean up duplicate branding/helper lines that older idempotent patches may have repeated.
+# Clean up duplicate branding/helper lines that older patches may have repeated.
 while '<div class="welcome-subtitle">CHAMPIONS LEAGUE</div>\n      <div class="welcome-subtitle">CHAMPIONS LEAGUE</div>' in text:
     text = text.replace(
         '<div class="welcome-subtitle">CHAMPIONS LEAGUE</div>\n      <div class="welcome-subtitle">CHAMPIONS LEAGUE</div>',
@@ -11,26 +11,20 @@ while '<div class="welcome-subtitle">CHAMPIONS LEAGUE</div>\n      <div class="w
         1,
     )
 
-dup_standalone = '''function isStandaloneMode() {
-  return window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true;
-}
-
-function isStandaloneMode() {
+standalone_fn = '''function isStandaloneMode() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
 }
 '''
-if dup_standalone in text:
-    text = text.replace(
-        dup_standalone,
-        '''function isStandaloneMode() {
-  return window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true;
-}
-''',
-        1,
-    )
+first = text.find(standalone_fn)
+if first != -1:
+    search_from = first + len(standalone_fn)
+    while True:
+        duplicate = text.find(standalone_fn, search_from)
+        if duplicate == -1:
+            break
+        text = text[:duplicate] + text[duplicate + len(standalone_fn):]
+        search_from = first + len(standalone_fn)
 
 # Remove recovery card construction from the home/player summary.
 start = text.find('  let recoveryCard =\n')
@@ -118,7 +112,6 @@ if 'function renderRecoverySettings() {' not in text:
 
 # Remove example placeholders from recovery controls.
 text = text.replace('placeholder="Näiteks KARL2026"', 'placeholder="Sisesta taastekood"')
-text = text.replace('placeholder="Näiteks KARL2026"', 'placeholder="Vali taastekood"')
 
 # Saving a recovery code should refresh the Rules recovery card, not the home summary.
 text = text.replace(
