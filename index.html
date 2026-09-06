@@ -214,10 +214,7 @@
     }
 
     .share-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      display: block;
       padding: 12px 14px;
       margin-bottom: 14px;
       background: var(--dark);
@@ -250,6 +247,39 @@
       background: white;
       color: var(--dark);
       font-weight: 900;
+    }
+
+    .share-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .share-apps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+      margin-top: 11px;
+      padding-top: 11px;
+      border-top: 1px solid rgba(255,255,255,.14);
+    }
+
+    .share-app-btn {
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .share-app-btn:hover {
+      background: rgba(255,255,255,.14);
     }
 
     .match-header {
@@ -1365,11 +1395,22 @@ function renderPlayerSummary() {
       '</div>' +
     '</div>' +
     '<div class="share-card">' +
-      '<div class="share-card-text">' +
-        '<div class="share-card-title">Kutsu sõbrad ennustama</div>' +
-        '<div class="share-card-subtitle">Jaga Futboli linki otse telefonist</div>' +
+      '<div class="share-top">' +
+        '<div class="share-card-text">' +
+          '<div class="share-card-title">Kutsu sõbrad ennustama</div>' +
+          '<div class="share-card-subtitle">Jaga Futboli linki otse telefonist</div>' +
+        '</div>' +
+        '<button class="share-btn" onclick="shareFutbol()">Jaga</button>' +
       '</div>' +
-      '<button class="share-btn" onclick="shareFutbol()">Jaga</button>' +
+      '<div class="share-apps">' +
+        '<button class="share-app-btn" onclick="shareViaApp(\'whatsapp\')">WhatsApp</button>' +
+        '<button class="share-app-btn" onclick="shareViaApp(\'messenger\')">Messenger</button>' +
+        '<button class="share-app-btn" onclick="shareViaApp(\'viber\')">Viber</button>' +
+        '<button class="share-app-btn" onclick="shareViaApp(\'instagram\')">Instagram</button>' +
+        '<button class="share-app-btn" onclick="shareViaApp(\'telegram\')">Telegram</button>' +
+        '<button class="share-app-btn" onclick="shareViaApp(\'facebook\')">Facebook</button>' +
+        '<button class="share-app-btn" onclick="copyFutbolLink()">Kopeeri link</button>' +
+      '</div>' +
     '</div>';
 }
 
@@ -1378,7 +1419,7 @@ async function shareFutbol() {
   const shareData = {
     title: "Futbol",
     text: "Tule ennusta meiega jalgpallimängude skoore!",
-    url: window.location.href
+    url: futbolShareUrl()
   };
 
   try {
@@ -1388,18 +1429,110 @@ async function shareFutbol() {
     }
 
     if (navigator.clipboard) {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(futbolShareUrl());
       toast("Futboli link kopeeritud.");
       return;
     }
 
-    window.prompt("Kopeeri Futboli link:", window.location.href);
+    window.prompt("Kopeeri Futboli link:", futbolShareUrl());
   } catch (error) {
     if (error && error.name === "AbortError") {
       return;
     }
 
     toast("Lingi jagamine ebaõnnestus.");
+  }
+}
+
+function futbolShareUrl() {
+  return window.location.origin + window.location.pathname;
+}
+
+function futbolShareText() {
+  return "Tule ennusta meiega jalgpallimängude skoore!";
+}
+
+async function copyFutbolLink(showMessage = true) {
+
+  const url = futbolShareUrl();
+
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      window.prompt("Kopeeri Futboli link:", url);
+      return;
+    }
+
+    if (showMessage) {
+      toast("Futboli link kopeeritud.");
+    }
+  } catch (error) {
+    window.prompt("Kopeeri Futboli link:", url);
+  }
+}
+
+async function shareViaApp(app) {
+
+  const url = futbolShareUrl();
+  const message = futbolShareText();
+  const combined = message + " " + url;
+
+  if (app === "whatsapp") {
+    window.open(
+      "https://wa.me/?text=" + encodeURIComponent(combined),
+      "_blank",
+      "noopener"
+    );
+    return;
+  }
+
+  if (app === "telegram") {
+    window.open(
+      "https://t.me/share/url?url=" + encodeURIComponent(url) +
+      "&text=" + encodeURIComponent(message),
+      "_blank",
+      "noopener"
+    );
+    return;
+  }
+
+  if (app === "facebook") {
+    window.open(
+      "https://www.facebook.com/sharer/sharer.php?u=" +
+      encodeURIComponent(url),
+      "_blank",
+      "noopener"
+    );
+    return;
+  }
+
+  if (app === "viber") {
+    await copyFutbolLink(false);
+    window.location.href =
+      "viber://forward?text=" + encodeURIComponent(combined);
+    return;
+  }
+
+  if (app === "messenger") {
+    await copyFutbolLink(false);
+
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (mobile) {
+      window.location.href =
+        "fb-messenger://share/?link=" + encodeURIComponent(url);
+    } else {
+      window.open("https://www.messenger.com/", "_blank", "noopener");
+      toast("Link kopeeritud — kleebi see Messengeri vestlusesse.");
+    }
+    return;
+  }
+
+  if (app === "instagram") {
+    await copyFutbolLink(false);
+    window.open("https://www.instagram.com/", "_blank", "noopener");
+    toast("Link kopeeritud — kleebi see Instagrami sõnumisse.");
   }
 }
 
