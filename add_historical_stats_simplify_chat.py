@@ -17,6 +17,7 @@ if CSS_MARKER not in text:
 
     /* FUTBOL HISTORICAL UCL STATS + SIMPLE CHAT */
     #adminChatDeep { display: none !important; }
+    .chat-admin-delete, .chat-pin-label { display: none !important; }
     .historical-stats-head {
       display:flex;
       justify-content:space-between;
@@ -48,6 +49,14 @@ if CSS_MARKER not in text:
     }
 '''
     text = text.replace('  </style>', css + '\n  </style>', 1)
+
+# Older generated app shells may already contain the marker from the first pass.
+if '.chat-admin-delete, .chat-pin-label { display: none !important; }' not in text:
+    text = text.replace(
+        '#adminChatDeep { display: none !important; }',
+        '#adminChatDeep { display: none !important; }\n    .chat-admin-delete, .chat-pin-label { display: none !important; }',
+        1
+    )
 
 if JS_MARKER not in text:
     js = r'''
@@ -156,7 +165,8 @@ renderAdmin = function() {
         raise SystemExit('init anchor not found')
     text = text[:pos] + js + text[pos:]
 
-# Chat stays a simple chronological conversation: no pinned announcements or admin delete controls.
+# Chat stays a simple chronological conversation. Legacy announcement columns may remain in storage,
+# but their pin and delete controls are not exposed in the user interface.
 if chat:
     chat = re.sub(
         r"\s*var pinnedMessages = chatMessages\.filter\(function \(item\) \{ return !!item\.pinned; \}\);\n\s*var regularMessages = chatMessages\.filter\(function \(item\) \{ return !item\.pinned; \}\);\n\s*box\.innerHTML = pinnedMessages\.concat\(regularMessages\)\.map",
@@ -164,22 +174,9 @@ if chat:
         chat,
         count=1
     )
-    chat = re.sub(
-        r"\n\s*var adminDelete = \(typeof adminVerified[^;]+?\? '<button class=\\\"chat-admin-delete\\\"[^;]+?: '';",
-        "",
-        chat,
-        count=1,
-        flags=re.S
-    )
     chat = chat.replace(
         "return '<div class=\"chat-message ' + (own ? 'own ' : '') + (item.is_announcement ? 'announcement' : '') + '\">' +",
         "return '<div class=\"chat-message ' + (own ? 'own' : '') + '\">' +"
-    )
-    chat = re.sub(
-        r"'<div class=\\\"chat-meta\\\"><span class=\\\"chat-name\\\">' \+ esc\(name\) \+ '</span>' \+ favorite \+ \(item\.pinned \? '<span class=\\\"chat-pin-label\\\">📌 TEADAANNE</span>' : ''\) \+ '<span class=\\\"chat-time\\\"> · ' \+ esc\(chatTimestamp\(item\.created_at\)\) \+ '</span>' \+ adminDelete \+ '</div>' \+",
-        "'<div class=\\\"chat-meta\\\"><span class=\\\"chat-name\\\">' + esc(name) + '</span>' + favorite + '<span class=\\\"chat-time\\\"> · ' + esc(chatTimestamp(item.created_at)) + '</span></div>' +",
-        chat,
-        count=1
     )
 
 # Force installed/PWA clients to receive the new chat and app shell.
