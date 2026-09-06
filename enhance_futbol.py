@@ -3,184 +3,283 @@ from pathlib import Path
 path = Path("index.html")
 text = path.read_text(encoding="utf-8")
 
-css_anchor = "    .match-header {\n"
-css_insert = """    .player-summary {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 14px;
-    }
+# Add helpers for explicitly European date format and 24-hour time.
+helper_anchor = "function isStarted(match) {\n"
+helper_code = r'''function formatEuropeanDateInput(input) {
 
-    .summary-stat {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 8px;
-      text-align: center;
-      box-shadow: var(--shadow);
-    }
+  const digits = input.value.replace(/\D/g, "").slice(0, 8);
 
-    .summary-value {
-      display: block;
-      font-size: 22px;
-      line-height: 1.1;
-      font-weight: 950;
-      color: var(--green);
-    }
-
-    .summary-label {
-      display: block;
-      margin-top: 4px;
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .share-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      margin-bottom: 14px;
-      background: var(--dark);
-      color: white;
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-    }
-
-    .share-card-text {
-      min-width: 0;
-    }
-
-    .share-card-title {
-      font-weight: 900;
-      font-size: 14px;
-    }
-
-    .share-card-subtitle {
-      margin-top: 2px;
-      color: #cddbd2;
-      font-size: 11px;
-    }
-
-    .share-btn {
-      flex: 0 0 auto;
-      min-height: 42px;
-      padding: 0 14px;
-      border: 1px solid rgba(255,255,255,.2);
-      border-radius: 11px;
-      background: white;
-      color: var(--dark);
-      font-weight: 900;
-    }
-
-"""
-if ".player-summary {" not in text:
-    if css_anchor not in text:
-        raise SystemExit("CSS anchor not found")
-    text = text.replace(css_anchor, css_insert + css_anchor, 1)
-
-html_anchor = """    <section id="tab-games">
-      <h2>Mängud</h2>
-      <div id="games"></div>
-    </section>"""
-html_replacement = """    <section id="tab-games">
-      <h2>Mängud</h2>
-      <div id="playerSummary"></div>
-      <div id="games"></div>
-    </section>"""
-if 'id="playerSummary"' not in text:
-    if html_anchor not in text:
-        raise SystemExit("Games section anchor not found")
-    text = text.replace(html_anchor, html_replacement, 1)
-
-load_anchor = """  renderGames();
-  renderLeaderboard();
-
-  if (adminVerified) {"""
-load_replacement = """  renderPlayerSummary();
-  renderGames();
-  renderLeaderboard();
-
-  if (adminVerified) {"""
-if "renderPlayerSummary();" not in text:
-    if load_anchor not in text:
-        raise SystemExit("loadAll anchor not found")
-    text = text.replace(load_anchor, load_replacement, 1)
-
-js_anchor = "function renderGames() {\n"
-js_insert = r'''function renderPlayerSummary() {
-
-  const container = document.getElementById("playerSummary");
-
-  if (!container || !currentUser) {
-    return;
+  if (digits.length <= 2) {
+    input.value = digits;
+  } else if (digits.length <= 4) {
+    input.value = digits.slice(0, 2) + "." + digits.slice(2);
+  } else {
+    input.value =
+      digits.slice(0, 2) + "." +
+      digits.slice(2, 4) + "." +
+      digits.slice(4);
   }
-
-  const row = leaderboard.find(item => item.player_id === currentUser.id);
-  const points = row ? Number(row.total_points || 0) : 0;
-  const rank = row ? row.rank_no : "–";
-  const exact = row ? Number(row.exact_scores || 0) : 0;
-
-  container.innerHTML =
-    '<div class="player-summary">' +
-      '<div class="summary-stat">' +
-        '<span class="summary-value">' + points + '</span>' +
-        '<span class="summary-label">Minu punktid</span>' +
-      '</div>' +
-      '<div class="summary-stat">' +
-        '<span class="summary-value">' + rank + '</span>' +
-        '<span class="summary-label">Koht tabelis</span>' +
-      '</div>' +
-      '<div class="summary-stat">' +
-        '<span class="summary-value">' + exact + '</span>' +
-        '<span class="summary-label">Täpsed skoorid</span>' +
-      '</div>' +
-    '</div>' +
-    '<div class="share-card">' +
-      '<div class="share-card-text">' +
-        '<div class="share-card-title">Kutsu sõbrad ennustama</div>' +
-        '<div class="share-card-subtitle">Jaga Futboli linki otse telefonist</div>' +
-      '</div>' +
-      '<button class="share-btn" onclick="shareFutbol()">Jaga</button>' +
-    '</div>';
 }
 
-async function shareFutbol() {
+function formatEuropeanTimeInput(input) {
 
-  const shareData = {
-    title: "Futbol",
-    text: "Tule ennusta meiega jalgpallimängude skoore!",
-    url: window.location.href
-  };
+  const digits = input.value.replace(/\D/g, "").slice(0, 4);
 
-  try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-      return;
-    }
-
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(window.location.href);
-      toast("Futboli link kopeeritud.");
-      return;
-    }
-
-    window.prompt("Kopeeri Futboli link:", window.location.href);
-  } catch (error) {
-    if (error && error.name === "AbortError") {
-      return;
-    }
-
-    toast("Lingi jagamine ebaõnnestus.");
+  if (digits.length <= 2) {
+    input.value = digits;
+  } else {
+    input.value = digits.slice(0, 2) + ":" + digits.slice(2);
   }
+}
+
+function europeanKickoffToIso(dateValue, timeValue) {
+
+  const dateMatch = String(dateValue || "").trim()
+    .match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+  const timeMatch = String(timeValue || "").trim()
+    .match(/^(\d{2}):(\d{2})$/);
+
+  if (!dateMatch || !timeMatch) {
+    return null;
+  }
+
+  const day = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const year = Number(dateMatch[3]);
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+
+  if (
+    year < 2000 ||
+    month < 1 || month > 12 ||
+    day < 1 || day > 31 ||
+    hour < 0 || hour > 23 ||
+    minute < 0 || minute > 59
+  ) {
+    return null;
+  }
+
+  const testDate = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    testDate.getUTCFullYear() !== year ||
+    testDate.getUTCMonth() !== month - 1 ||
+    testDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const local =
+    String(year).padStart(4, "0") + "-" +
+    String(month).padStart(2, "0") + "-" +
+    String(day).padStart(2, "0") + "T" +
+    String(hour).padStart(2, "0") + ":" +
+    String(minute).padStart(2, "0");
+
+  return tallinnLocalToIso(local);
 }
 
 '''
-if "function renderPlayerSummary()" not in text:
-    if js_anchor not in text:
-        raise SystemExit("renderGames anchor not found")
-    text = text.replace(js_anchor, js_insert + js_anchor, 1)
+
+if "function europeanKickoffToIso(" not in text:
+    if helper_anchor not in text:
+        raise SystemExit("Time helper anchor not found")
+    text = text.replace(helper_anchor, helper_code + helper_anchor, 1)
+
+# Replace the add-match datetime-local input with explicit DD.MM.YYYY + 24h HH:MM inputs.
+old_add = '''        "<div>" +
+          "<label>Mängu algus – Eesti aeg</label>" +
+          '<input ' +
+            'id="newKickoff" ' +
+            'class="input" ' +
+            'type="datetime-local">' +
+        "</div>" +'''
+
+new_add = '''        "<div>" +
+          "<label>Kuupäev (PP.KK.AAAA)</label>" +
+          '<input ' +
+            'id="newKickoffDate" ' +
+            'class="input" ' +
+            'type="text" ' +
+            'inputmode="numeric" ' +
+            'maxlength="10" ' +
+            'autocomplete="off" ' +
+            'placeholder="06.09.2026" ' +
+            'oninput="formatEuropeanDateInput(this)">' +
+        "</div>" +
+
+        "<div>" +
+          "<label>Kellaaeg (24 h)</label>" +
+          '<input ' +
+            'id="newKickoffTime" ' +
+            'class="input" ' +
+            'type="text" ' +
+            'inputmode="numeric" ' +
+            'maxlength="5" ' +
+            'autocomplete="off" ' +
+            'placeholder="19:30" ' +
+            'oninput="formatEuropeanTimeInput(this)">' +
+        "</div>" +'''
+
+if 'id="newKickoff" ' in text:
+    if old_add not in text:
+        raise SystemExit("Add-match datetime block not found")
+    text = text.replace(old_add, new_add, 1)
+
+# Replace edit-match datetime-local input similarly.
+old_edit = '''            "<div>" +
+              "<label>Mängu algus – Eesti aeg</label>" +
+              '<input ' +
+                'id="ek-' +
+                match.id +
+                '" ' +
+                'class="input" ' +
+                'type="datetime-local" ' +
+                'value="' +
+                isoToTallinnInput(
+                  match.kickoff_at
+                ) +
+                '">' +
+            "</div>" +'''
+
+new_edit = '''            "<div>" +
+              "<label>Kuupäev (PP.KK.AAAA)</label>" +
+              '<input ' +
+                'id="ekd-' +
+                match.id +
+                '" ' +
+                'class="input" ' +
+                'type="text" ' +
+                'inputmode="numeric" ' +
+                'maxlength="10" ' +
+                'autocomplete="off" ' +
+                'oninput="formatEuropeanDateInput(this)" ' +
+                'value="' +
+                formatDate(
+                  match.kickoff_at
+                ) +
+                '">' +
+            "</div>" +
+
+            "<div>" +
+              "<label>Kellaaeg (24 h)</label>" +
+              '<input ' +
+                'id="ekt-' +
+                match.id +
+                '" ' +
+                'class="input" ' +
+                'type="text" ' +
+                'inputmode="numeric" ' +
+                'maxlength="5" ' +
+                'autocomplete="off" ' +
+                'oninput="formatEuropeanTimeInput(this)" ' +
+                'value="' +
+                formatTime(
+                  match.kickoff_at
+                ) +
+                '">' +
+            "</div>" +'''
+
+if 'id="ek-' in text:
+    if old_edit not in text:
+        raise SystemExit("Edit-match datetime block not found")
+    text = text.replace(old_edit, new_edit, 1)
+
+# Update add-match handler.
+old_create_logic = '''  const local =
+    document
+      .getElementById("newKickoff")
+      .value;
+
+  if (!home || !away || !local) {
+
+    toast(
+      "Täida kõik mängu väljad."
+    );
+
+    return;
+  }
+
+  const kickoff =
+    tallinnLocalToIso(local);'''
+
+new_create_logic = '''  const dateValue =
+    document
+      .getElementById("newKickoffDate")
+      .value;
+
+  const timeValue =
+    document
+      .getElementById("newKickoffTime")
+      .value;
+
+  if (!home || !away || !dateValue || !timeValue) {
+
+    toast(
+      "Täida kõik mängu väljad."
+    );
+
+    return;
+  }
+
+  const kickoff =
+    europeanKickoffToIso(dateValue, timeValue);
+
+  if (!kickoff) {
+
+    toast(
+      "Sisesta kuupäev kujul PP.KK.AAAA ja kellaaeg 24 tunni kujul HH:MM."
+    );
+
+    return;
+  }'''
+
+if 'getElementById("newKickoff")' in text:
+    if old_create_logic not in text:
+        raise SystemExit("Create handler datetime logic not found")
+    text = text.replace(old_create_logic, new_create_logic, 1)
+
+# Update edit-match handler.
+old_update_logic = '''  const local =
+    document
+      .getElementById(
+        "ek-" + matchId
+      )
+      .value;
+
+  const kickoff =
+    tallinnLocalToIso(local);'''
+
+new_update_logic = '''  const dateValue =
+    document
+      .getElementById(
+        "ekd-" + matchId
+      )
+      .value;
+
+  const timeValue =
+    document
+      .getElementById(
+        "ekt-" + matchId
+      )
+      .value;
+
+  const kickoff =
+    europeanKickoffToIso(dateValue, timeValue);
+
+  if (!kickoff) {
+
+    toast(
+      "Sisesta kuupäev kujul PP.KK.AAAA ja kellaaeg 24 tunni kujul HH:MM."
+    );
+
+    return;
+  }'''
+
+if '"ek-" + matchId' in text:
+    if old_update_logic not in text:
+        raise SystemExit("Update handler datetime logic not found")
+    text = text.replace(old_update_logic, new_update_logic, 1)
 
 path.write_text(text, encoding="utf-8")
