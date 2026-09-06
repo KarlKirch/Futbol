@@ -43,6 +43,9 @@ jobs:
       - name: Move recovery settings to rules
         run: python move_recovery_to_rules.py
 
+      - name: Add UCL rounds logos and import UI
+        run: python add_ucl_advanced_features.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -51,8 +54,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Move recovery settings to rules"
+            git commit -m "Add Champions League rounds logos and auto sync"
             git push
           fi
 
-# Refresh: move recovery settings to rules
+# Refresh: UCL rounds logos bulk add and automatic sync
