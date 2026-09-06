@@ -32,6 +32,7 @@
 'use strict';
 const BASE='https://aanxpugvehwtcwwpefwx.supabase.co';
 const KEY='sb_publishable_ICMR8EF0LK69VjfVRWe0ew_120LIV7A';
+const SIGNUP_REDIRECT='https://karlkirch.github.io/Futbol/wod/';
 let mode='login';
 let session=null;
 let profile=null;
@@ -46,7 +47,7 @@ async function request(url,opt={}){const r=await fetch(url,opt);const text=await
 function showMessage(text,bad=false){$('message').innerHTML=text?`<div class="notice${bad?' bad':''}">${esc(text)}</div>`:''}
 function setMode(next){mode=next;$('tabLogin').classList.toggle('on',mode==='login');$('tabSignup').classList.toggle('on',mode==='signup');$('nameField').classList.toggle('hidden',mode!=='signup');$('authButton').textContent=mode==='login'?'Logi sisse':'Loo konto';$('password').autocomplete=mode==='login'?'current-password':'new-password';showMessage('')}
 $('tabLogin').onclick=()=>setMode('login');$('tabSignup').onclick=()=>setMode('signup');
-async function authSubmit(){const email=$('email').value.trim(),password=$('password').value,name=$('name').value.trim();if(!email||!password||(mode==='signup'&&!name)){showMessage('Täida kõik väljad.',true);return}showMessage('Palun oota…');try{let data;if(mode==='signup'){data=await request(BASE+'/auth/v1/signup',{method:'POST',headers:headers(),body:JSON.stringify({email,password,data:{display_name:name}})});if(!data.access_token){showMessage('Konto loodud. Kinnita e-postis saadetud link ja logi seejärel sisse.');return}}else{data=await request(BASE+'/auth/v1/token?grant_type=password',{method:'POST',headers:headers(),body:JSON.stringify({email,password})})}session=data;localStorage.setItem('wod_session',JSON.stringify(data));await loadApp()}catch(e){showMessage(e.message||'Sisselogimine ebaõnnestus.',true)}}
+async function authSubmit(){const email=$('email').value.trim(),password=$('password').value,name=$('name').value.trim();if(!email||!password||(mode==='signup'&&!name)){showMessage('Täida kõik väljad.',true);return}showMessage('Palun oota…');try{let data;if(mode==='signup'){data=await request(BASE+'/auth/v1/signup?redirect_to='+encodeURIComponent(SIGNUP_REDIRECT),{method:'POST',headers:headers(),body:JSON.stringify({email,password,data:{display_name:name}})});if(!data.access_token){showMessage('Konto loodud. Kinnita e-postis saadetud link ja logi seejärel sisse.');return}}else{data=await request(BASE+'/auth/v1/token?grant_type=password',{method:'POST',headers:headers(),body:JSON.stringify({email,password})})}session=data;localStorage.setItem('wod_session',JSON.stringify(data));await loadApp()}catch(e){showMessage(e.message||'Sisselogimine ebaõnnestus.',true)}}
 $('authButton').onclick=authSubmit;
 async function api(path,opt={}){if(!session?.access_token)throw new Error('Sessioon puudub');return request(BASE+'/rest/v1/'+path,{...opt,headers:{...headers(session.access_token),...(opt.headers||{})}})}
 async function rpc(name,body){return api('rpc/'+name,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(body)})}
