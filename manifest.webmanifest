@@ -1,9 +1,9 @@
 {
-  "id": "/Futbol/",
+  "id": "/Futbol/futbol-cl-app-v2",
   "name": "Futbol – Champions League",
   "short_name": "Futbol CL",
   "description": "Champions League'i ennustusmäng sõpradega",
-  "start_url": "/Futbol/index.html",
+  "start_url": "/Futbol/index.html?source=futbol-pwa-v2",
   "scope": "/Futbol/index.html",
   "display": "standalone",
   "background_color": "#f3f6f4",
