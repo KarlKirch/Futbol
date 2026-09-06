@@ -1,4 +1,4 @@
-const CACHE_NAME = "futbol-champions-v1";
+const CACHE_NAME = "futbol-champions-v2";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -51,4 +51,55 @@ self.addEventListener("fetch", event => {
       });
     })
   );
+});
+
+self.addEventListener("push", event => {
+  let data = {};
+
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = {};
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(
+      data.title || "Futbol – Champions League",
+      {
+        body: data.body || "Sul on ennustusi tegemata.",
+        icon: "./app-icon.svg",
+        badge: "./app-icon.svg",
+        tag: data.tag || "futbol-prediction-reminder",
+        data: {
+          url: data.url || "./"
+        }
+      }
+    )
+  );
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = event.notification.data?.url || "./";
+
+  event.waitUntil((async () => {
+    const windowClients = await clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    });
+
+    for (const client of windowClients) {
+      if ("focus" in client) {
+        await client.focus();
+        if ("navigate" in client) {
+          await client.navigate(target);
+        }
+        return;
+      }
+    }
+
+    if (clients.openWindow) {
+      return clients.openWindow(target);
+    }
+  })());
 });
