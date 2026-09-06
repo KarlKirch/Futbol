@@ -67,6 +67,9 @@ jobs:
       - name: Add dynamic round columns to leaderboard
         run: python dynamic_round_leaderboard.py
 
+      - name: Add user chat
+        run: python add_chat_feature.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -75,8 +78,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Show completed rounds as leaderboard columns"
+            git commit -m "Add user chat"
             git push
           fi
 
-# Refresh: dynamic leaderboard round columns
+# Refresh: user chat
