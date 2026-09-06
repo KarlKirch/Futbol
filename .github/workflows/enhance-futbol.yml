@@ -73,6 +73,9 @@ jobs:
       - name: Fix chat startup
         run: python fix_chat_boot.py
 
+      - name: Isolate chat from core startup
+        run: python isolate_chat_startup.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -81,8 +84,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Fix chat startup"
+            git commit -m "Isolate chat from core startup"
             git push
           fi
 
-# Refresh: chat startup fix
+# Refresh: isolate chat from startup
