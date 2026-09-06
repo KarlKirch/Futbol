@@ -819,6 +819,13 @@ function friendlyError(error) {
     return "See nimi on juba kasutusel.";
   }
 
+  if (
+    msg.includes("players_id_fkey") ||
+    msg.includes("foreign key constraint")
+  ) {
+    return "Sisselogimisseanss aegus. Värskenda lehte ja proovi uuesti.";
+  }
+
   if (msg.includes("Alanud mängu ei saa muuta")) {
     return "Alanud mängu ei saa enam muuta.";
   }
@@ -1134,6 +1141,25 @@ function calculatePoints(prediction, match) {
   return 0;
 }
 
+async function createFreshAnonymousSession() {
+
+  try {
+    await sb.auth.signOut({ scope: "local" });
+  } catch (error) {
+    // A deleted anonymous user can make sign-out fail server-side.
+    // Local cleanup/sign-in below is still the recovery path.
+  }
+
+  const signIn = await sb.auth.signInAnonymously();
+
+  if (signIn.error) {
+    throw signIn.error;
+  }
+
+  currentUser = signIn.data.session.user;
+  return signIn.data.session;
+}
+
 async function init() {
 
   try {
@@ -1157,17 +1183,24 @@ async function init() {
     let session =
       sessionResult.data.session;
 
-    if (!session) {
+    if (session) {
 
-      const signIn =
-        await sb.auth.signInAnonymously();
+      const userCheck =
+        await sb.auth.getUser();
 
-      if (signIn.error) {
-        throw signIn.error;
+      if (
+        userCheck.error ||
+        !userCheck.data ||
+        !userCheck.data.user
+      ) {
+        session =
+          await createFreshAnonymousSession();
       }
+    }
 
+    if (!session) {
       session =
-        signIn.data.session;
+        await createFreshAnonymousSession();
     }
 
     currentUser =
@@ -1236,7 +1269,7 @@ async function savePlayerName() {
     return;
   }
 
-  const result =
+  let result =
     await sb
       .from("players")
       .insert({
@@ -1245,6 +1278,32 @@ async function savePlayerName() {
       })
       .select()
       .single();
+
+  if (result.error && result.error.code === "23503") {
+
+    try {
+      const freshSession =
+        await createFreshAnonymousSession();
+
+      currentUser =
+        freshSession.user;
+
+      result =
+        await sb
+          .from("players")
+          .insert({
+            id: currentUser.id,
+            display_name: name
+          })
+          .select()
+          .single();
+
+    } catch (error) {
+      errorBox.textContent =
+        friendlyError(error);
+      return;
+    }
+  }
 
   if (result.error) {
 
