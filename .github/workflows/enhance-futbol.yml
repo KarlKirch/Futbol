@@ -27,8 +27,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Use European date and 24-hour time inputs"
+            git commit -m "Add admin player management"
             git push
           fi
 
-# Refresh: European date format and 24-hour clock
+# Refresh: admin player management
