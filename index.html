@@ -500,6 +500,25 @@
       font-weight: 700;
     }
 
+    .user-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #edf1ee;
+    }
+
+    .user-row:last-child {
+      border-bottom: 0;
+    }
+
+    .user-self {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
     .admin-actions {
       display: flex;
       flex-wrap: wrap;
@@ -1793,6 +1812,41 @@ function renderAdmin() {
 
   html +=
     '<div class="card">' +
+      "<h3>Kasutajad</h3>" +
+      '<div class="hint" style="text-align:left;margin-bottom:8px">' +
+        "Kasutaja kustutamisel kustutatakse ka tema kõik ennustused." +
+      "</div>";
+
+  [...players]
+    .sort((a, b) =>
+      a.display_name.localeCompare(b.display_name, "et")
+    )
+    .forEach(player => {
+
+      html +=
+        '<div class="user-row">' +
+          "<strong>" + esc(player.display_name) + "</strong>";
+
+      if (player.id === currentUser.id) {
+        html += '<span class="user-self">Sina</span>';
+      } else {
+        html +=
+          '<button ' +
+            'class="btn btn-danger btn-small" ' +
+            'onclick="adminDeletePlayer(\'' +
+            player.id +
+            '\')">' +
+            "Kustuta" +
+          "</button>";
+      }
+
+      html += "</div>";
+    });
+
+  html += "</div>";
+
+  html +=
+    '<div class="card">' +
 
       "<h3>Lisa mäng</h3>" +
 
@@ -2197,6 +2251,46 @@ function togglePanel(id) {
   document
     .getElementById(id)
     .classList.toggle("hidden");
+}
+
+async function adminDeletePlayer(playerId) {
+
+  if (playerId === currentUser.id) {
+    toast("Enda kasutajat ei saa kustutada.");
+    return;
+  }
+
+  const player = players.find(p => p.id === playerId);
+
+  if (!player) {
+    toast("Kasutajat ei leitud.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Kas kustutada kasutaja " + player.display_name +
+    "? Kõik tema ennustused kustutatakse samuti."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const result = await sb.rpc(
+    "admin_delete_player",
+    {
+      p_pin: adminPin,
+      p_player_id: playerId
+    }
+  );
+
+  if (result.error) {
+    toast(friendlyError(result.error));
+    return;
+  }
+
+  toast("Kasutaja " + player.display_name + " kustutatud.");
+  await loadAll();
 }
 
 async function adminCreateMatch() {
