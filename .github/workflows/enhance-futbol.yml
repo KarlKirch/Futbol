@@ -37,6 +37,9 @@ jobs:
       - name: Add Champions League features
         run: python add_champions_features.py
 
+      - name: Add custom recovery code UI
+        run: python custom_recovery_code.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -45,8 +48,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add recovery stats PWA and Champions League branding"
+            git commit -m "Let players choose their recovery code"
             git push
           fi
 
-# Refresh: Champions League recovery stats and PWA
+# Refresh: custom recovery code UI
