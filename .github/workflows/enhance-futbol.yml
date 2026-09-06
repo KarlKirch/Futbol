@@ -103,6 +103,9 @@ jobs:
       - name: Refine match statistics to current form
         run: python refine_match_stats_current_form.py
 
+      - name: Adapt statistics UI to FotMob
+        run: python fix_stats_fotmob_ui.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -111,8 +114,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Refine match stats to current form"
+            git commit -m "Use complete FotMob match statistics"
             git push
           fi
 
-# Refresh: current-form match statistics and persistent panel
+# Refresh: FotMob all-competition form statistics
