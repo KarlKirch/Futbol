@@ -16,8 +16,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Apply UI enhancement
+      - name: Apply base UI enhancements
         run: python enhance_futbol.py
+
+      - name: Add calendar picker
+        run: python add_calendar_picker.py
 
       - name: Commit changes
         run: |
@@ -27,8 +30,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add admin player management"
+            git commit -m "Add calendar picker for match dates"
             git push
           fi
 
-# Refresh: admin player management
+# Refresh: calendar picker
