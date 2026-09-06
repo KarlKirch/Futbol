@@ -1630,6 +1630,19 @@
       .round-summary-grid { grid-template-columns: 1fr 1fr; }
     }
 
+
+
+    /* FUTBOL LEADER GAP UX */
+    .leader-gap-cell {
+      color: #687188;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .leaderboard-self .leader-gap-cell {
+      color: #176b43;
+    }
+
   </style>
 </head>
 
@@ -2524,6 +2537,7 @@ function isStandaloneMode() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
 }
+
 
 
 
@@ -5563,6 +5577,7 @@ renderLeaderboard = function() {
   leaderboardRoundView = round;
   const rounds = scoredRounds();
   const roundStats = roundStatMap(round);
+  const leaderPoints = leaderboard.length ? Math.max(...leaderboard.map(item => Number(item.total_points || 0))) : 0;
   let options = '';
   (rounds.length ? rounds : [round]).forEach(n => {
     options += '<option value="' + n + '" ' + (Number(n) === Number(round) ? 'selected' : '') + '>' + esc(competitionRoundTitle(n)) + '</option>';
@@ -5574,7 +5589,7 @@ renderLeaderboard = function() {
       '<select class="input" onchange="setLeaderboardRoundView(this.value)">' + options + '</select>' +
     '</div>' +
     '<div class="card table-wrap"><table class="leaderboard-plus"><thead><tr>' +
-      '<th>Koht</th><th>Mängija</th><th class="num">Voor</th><th class="num">Kokku</th><th class="num">±</th>' +
+      '<th>Koht</th><th>Mängija</th><th class="num">Voor</th><th class="num">Kokku</th><th class="num">Liidrist</th><th class="num">±</th>' +
     '</tr></thead><tbody>';
 
   leaderboard.forEach(row => {
@@ -5582,12 +5597,14 @@ renderLeaderboard = function() {
     const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
     const isSelf = currentUser && row.player_id === currentUser.id;
     const rs = roundStats.get(row.player_id) || { points: 0, exact: 0, predicted: 0 };
+    const gapToLeader = Math.max(0, leaderPoints - Number(row.total_points || 0));
     html += '<tr class="' + (isSelf ? 'leaderboard-self' : '') + '">' +
       '<td class="rank">' + (medal ? '<span class="rank-medal">' + medal + '</span>' : '') + row.rank_no + '</td>' +
       '<td><button class="player-name-btn" onclick="openPlayerStats(\'' + row.player_id + '\')">' + esc(row.player_name) + '</button>' +
         '<div class="leader-player-meta">' + Number(row.exact_scores || 0) + ' täpset · ' + Number(row.predictions_count || 0) + ' ennustust</div></td>' +
       '<td class="num round-points-cell">' + Number(rs.points || 0) + '</td>' +
       '<td class="num leader-total-cell">' + Number(row.total_points || 0) + '</td>' +
+      '<td class="num leader-gap-cell">' + (gapToLeader === 0 ? '–' : '−' + gapToLeader) + '</td>' +
       '<td class="num">' + rankMoveHtml(row.player_id, round) + '</td>' +
     '</tr>';
   });
