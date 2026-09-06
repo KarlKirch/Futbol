@@ -1,4 +1,4 @@
-const CACHE_NAME = "futbol-champions-v9";
+const CACHE_NAME = "futbol-champions-v10";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,11 @@ const STATIC_ASSETS = [
   "./favicon.ico"
 ];
 
+const SCOPE_PATH = new URL(self.registration.scope).pathname;
+const WOD_PATH = new URL("./wod/", self.registration.scope).pathname;
+const ROOT_PATH = SCOPE_PATH.endsWith("/") ? SCOPE_PATH : SCOPE_PATH + "/";
+const ROOT_INDEX_PATH = ROOT_PATH + "index.html";
+
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
@@ -16,12 +21,11 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener("fetch", event => {
@@ -32,7 +36,19 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  // WOD is a separate app. Futbol's service worker must never cache,
+  // rewrite or provide an offline fallback for anything under /wod/.
+  if (url.pathname.startsWith(WOD_PATH)) {
+    return;
+  }
+
   if (request.mode === "navigate") {
+    const isFutbolRoot = url.pathname === ROOT_PATH || url.pathname === ROOT_INDEX_PATH;
+
+    if (!isFutbolRoot) {
+      return;
+    }
+
     event.respondWith(
       fetch(request, { cache: "no-store" })
         .then(response => {
