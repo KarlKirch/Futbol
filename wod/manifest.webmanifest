@@ -1,7 +1,9 @@
 {
+  "id": "/Futbol/wod-app",
   "name": "WOD – treeningutele registreerimine",
   "short_name": "WOD",
-  "start_url": "./",
+  "start_url": "./app.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f3f6f4",
   "theme_color": "#0f1412",
