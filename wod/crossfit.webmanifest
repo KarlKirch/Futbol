@@ -1,0 +1,15 @@
+{
+  "id": "/Futbol/wod/",
+  "name": "WOD CrossFit – treeningud",
+  "short_name": "WOD CrossFit",
+  "description": "CrossFit treeningutele registreerimine ja treeningute haldus.",
+  "start_url": "/Futbol/wod/app.html?source=pwa",
+  "scope": "/Futbol/wod/",
+  "display": "standalone",
+  "background_color": "#111315",
+  "theme_color": "#d94a32",
+  "categories": ["fitness", "sports"],
+  "icons": [
+    {"src":"/Futbol/wod/crossfit-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
