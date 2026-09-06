@@ -29,7 +29,7 @@ jobs:
         run: python fix_stale_auth.py
 
       - name: Add core UX improvements
-        run: python add_core_ux.py
+        run: python run_core_ux.py
 
       - name: Commit changes
         run: |
@@ -43,4 +43,4 @@ jobs:
             git push
           fi
 
-# Refresh: rules countdown prediction status and match groups
+# Refresh: core UX runner fix
