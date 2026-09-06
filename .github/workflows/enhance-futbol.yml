@@ -82,6 +82,9 @@ jobs:
       - name: Add multi-device accounts and entry rules
         run: python add_multi_device_accounts.py
 
+      - name: Move confirmed payment status to rules
+        run: python move_paid_status_to_rules.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -90,8 +93,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add multi-device accounts and entry rules"
+            git commit -m "Move confirmed payment status to rules"
             git push
           fi
 
-# Refresh: multi-device accounts and entry rules
+# Refresh: confirmed payment status placement
