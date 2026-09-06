@@ -91,6 +91,9 @@ jobs:
       - name: Add deep competition features
         run: python add_deep_competition_features.py
 
+      - name: Fix stats visibility and bonus placement
+        run: python fix_stats_bonus_placement.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -99,8 +102,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add deep competition and bonus features"
+            git commit -m "Show match stats and move locked bonuses to rules"
             git push
           fi
 
-# Refresh: deep competition features
+# Refresh: stats visibility and bonus placement
