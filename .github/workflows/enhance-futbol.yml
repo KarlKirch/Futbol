@@ -94,6 +94,9 @@ jobs:
       - name: Fix stats visibility and bonus placement
         run: python fix_stats_bonus_placement.py
 
+      - name: Add historical UCL stats and simplify chat
+        run: python add_historical_stats_simplify_chat.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -102,8 +105,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Show match stats and move locked bonuses to rules"
+            git commit -m "Add historical UCL stats and simplify chat"
             git push
           fi
 
-# Refresh: stats visibility and bonus placement
+# Refresh: historical UCL stats and simpler chat
