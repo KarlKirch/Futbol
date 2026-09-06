@@ -12,22 +12,31 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#e9eeeb;font-family:system-ui,-apple-system,Segoe UI,sans-serif}#appFrame{display:block;width:100%;height:100dvh;border:0;background:#e9eeeb}.install{position:fixed;right:14px;bottom:14px;z-index:100;border:0;border-radius:14px;padding:12px 15px;font-weight:800;background:#119447;color:#fff;box-shadow:0 5px 22px #0004}.hidden{display:none!important}.cal-bg{position:fixed;inset:0;z-index:200;background:#0008;display:flex;align-items:center;justify-content:center;padding:18px}.cal{width:min(390px,100%);background:#fff;border-radius:22px;padding:16px;box-shadow:0 20px 65px #0005;color:#152019}.cal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.cal-title{font-weight:900;text-transform:capitalize}.nav{width:40px;height:40px;border:1px solid #dce4df;border-radius:12px;background:#fff;font-size:21px}.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.wd{text-align:center;padding:5px 0;font-size:11px;font-weight:900;color:#6d7771}.day,.blank{aspect-ratio:1}.day{border:0;border-radius:11px;background:#f3f6f4;font-weight:750}.day.today{outline:1px solid #83c99e}.day.sel{background:#119447;color:#fff}.foot{display:flex;gap:8px;margin-top:12px}.foot button{flex:1;border:0;border-radius:12px;padding:11px;font-weight:800}.todaybtn{background:#edf1ef}.closebtn{background:#101612;color:#fff}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#e9eeeb;font-family:system-ui,-apple-system,Segoe UI,sans-serif}#appFrame{display:block;width:100%;height:100dvh;border:0;background:#e9eeeb}.hidden{display:none!important}.cal-bg{position:fixed;inset:0;z-index:200;background:#0008;display:flex;align-items:center;justify-content:center;padding:18px}.cal{width:min(390px,100%);background:#fff;border-radius:22px;padding:16px;box-shadow:0 20px 65px #0005;color:#152019}.cal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.cal-title{font-weight:900;text-transform:capitalize}.nav{width:40px;height:40px;border:1px solid #dce4df;border-radius:12px;background:#fff;font-size:21px}.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.wd{text-align:center;padding:5px 0;font-size:11px;font-weight:900;color:#6d7771}.day,.blank{aspect-ratio:1}.day{border:0;border-radius:11px;background:#f3f6f4;font-weight:750}.day.today{outline:1px solid #83c99e}.day.sel{background:#119447;color:#fff}.foot{display:flex;gap:8px;margin-top:12px}.foot button{flex:1;border:0;border-radius:12px;padding:11px;font-weight:800}.todaybtn{background:#edf1ef}.closebtn{background:#101612;color:#fff}
 </style>
 </head>
 <body>
-<iframe id="appFrame" src="./index.html?v=9" title="WOD"></iframe>
-<button id="installBtn" class="install" onclick="installWod()">Paigalda WOD</button>
+<iframe id="appFrame" src="./index.html?v=10" title="WOD"></iframe>
 <div id="calBg" class="cal-bg hidden" onclick="closeCal(event)"><div class="cal" onclick="event.stopPropagation()"><div id="calBody"></div></div></div>
 <script>
 'use strict';
-const frame=document.getElementById('appFrame'),installBtn=document.getElementById('installBtn'),calBg=document.getElementById('calBg'),calBody=document.getElementById('calBody');
+const frame=document.getElementById('appFrame'),calBg=document.getElementById('calBg'),calBody=document.getElementById('calBody');
 let installPrompt=null,targetInput=null,cursor=null,observer=null;
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-function syncInstall(){installBtn.classList.toggle('hidden',isStandalone())}
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;syncInstall()});
-window.addEventListener('appinstalled',()=>{installPrompt=null;syncInstall()});
-async function installWod(){if(isStandalone())return;if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;syncInstall();return}alert('Chrome’is vali menüüst „Installi rakendus“ või „Lisa avakuvale“. WOD paigaldatakse Futbolist eraldi äpina.')}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;patchChild()});
+window.addEventListener('appinstalled',()=>{installPrompt=null;patchChild()});
+async function installWod(){
+  if(isStandalone())return;
+  if(installPrompt){
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt=null;
+    patchChild();
+    return;
+  }
+  const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  alert(isIOS?'Vajuta brauseris Jaga ja vali „Lisa avakuvale“.':'Ava see leht Chrome’is. Vajuta „Lisa WOD avakuvale“. Kui paigaldusaken ei avane, vali Chrome’i menüüst „Installi rakendus“ või „Lisa avakuvale“.');
+}
 function today(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Tallinn',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),o={};p.forEach(x=>{if(x.type!=='literal')o[x.type]=x.value});return`${o.year}-${o.month}-${o.day}`}
 function monDay(s){const[y,m,d]=s.split('-').map(Number),n=new Date(Date.UTC(y,m-1,d)).getUTCDay();return n===0?7:n}
 function openCal(input){targetInput=input;const base=input.value||today(),[y,m]=base.split('-').map(Number);cursor={y,m};renderCal();calBg.classList.remove('hidden')}
@@ -38,12 +47,13 @@ function renderCal(){const{y,m}=cursor,first=`${y}-${String(m).padStart(2,'0')}-
 function roundEuro(input){if(!input)return;const v=Number(String(input.value).replace(',','.'));if(Number.isFinite(v))input.value=String(Math.max(0,Math.round(v)))}
 function patchDate(input){if(!input||input.dataset.monCalendar)return;input.dataset.monCalendar='1';input.type='text';input.readOnly=true;input.inputMode='none';input.style.cursor='pointer';input.addEventListener('click',e=>{e.preventDefault();openCal(input)})}
 function patchPrice(input,isCreate=false){if(!input||input.dataset.euroStep)return;input.dataset.euroStep='1';input.step='1';input.min='0';input.inputMode='numeric';if(isCreate&&(input.value==='8'||input.value==='8.00'||input.value===''))input.value='5';else roundEuro(input);input.addEventListener('change',()=>roundEuro(input));input.addEventListener('blur',()=>roundEuro(input))}
-function patchChild(){let d;try{d=frame.contentDocument}catch(_){return}if(!d?.body)return;const t=d.getElementById('ttime');if(t&&!t.dataset.default1900){t.dataset.default1900='1';if(t.value==='18:30'||!t.value)t.value='19:00'}patchPrice(d.getElementById('tprice'),true);patchPrice(d.getElementById('eprice'),false);patchDate(d.getElementById('tdate'));patchDate(d.getElementById('edate'));if(!d.documentElement.dataset.wodCapture){d.documentElement.dataset.wodCapture='1';d.addEventListener('click',e=>{const b=e.target.closest?.('button');if(!b)return;const code=b.getAttribute('onclick')||'';if(code.includes('createTraining'))roundEuro(d.getElementById('tprice'));if(code.includes('saveTraining'))roundEuro(d.getElementById('eprice'))},true)}}
+function ensureInstallStyle(d){if(d.getElementById('wodInstallStyle'))return;const s=d.createElement('style');s.id='wodInstallStyle';s.textContent='.wod-install-card{padding:14px;margin:0 0 16px;border:1px solid #dce4df;border-radius:16px;background:#fff;box-shadow:0 5px 20px rgba(20,40,28,.07)}.wod-install-title{font-size:14px;font-weight:900}.wod-install-text{margin-top:4px;color:#6d7771;font-size:12px;line-height:1.45}.wod-install-btn{margin-top:10px;min-height:42px;padding:0 14px;border:0;border-radius:11px;background:#e9efeb;color:#26312b;font-weight:900}';d.head.appendChild(s)}
+function injectInstallCard(d){const old=d.getElementById('wodInstallCard');if(isStandalone()){old?.remove();return}ensureInstallStyle(d);if(old)return;const card=d.createElement('div');card.id='wodInstallCard';card.className='wod-install-card';card.innerHTML='<div class="wod-install-title">Lisa WOD avakuvale</div><div class="wod-install-text">WOD avaneb telefonis või arvutis Futbolist eraldi rakendusena.</div><button class="wod-install-btn" type="button">Lisa avakuvale</button>';card.querySelector('button').addEventListener('click',()=>installWod());const main=d.querySelector('#mainScreen .content');const hero=main?.querySelector('.hero');if(main){hero?hero.insertAdjacentElement('afterend',card):main.prepend(card);return}const authbox=d.querySelector('#authScreen .authbox');if(authbox)authbox.appendChild(card)}
+function patchChild(){let d;try{d=frame.contentDocument}catch(_){return}if(!d?.body)return;const t=d.getElementById('ttime');if(t&&!t.dataset.default1900){t.dataset.default1900='1';if(t.value==='18:30'||!t.value)t.value='19:00'}patchPrice(d.getElementById('tprice'),true);patchPrice(d.getElementById('eprice'),false);patchDate(d.getElementById('tdate'));patchDate(d.getElementById('edate'));injectInstallCard(d);if(!d.documentElement.dataset.wodCapture){d.documentElement.dataset.wodCapture='1';d.addEventListener('click',e=>{const b=e.target.closest?.('button');if(!b)return;const code=b.getAttribute('onclick')||'';if(code.includes('createTraining'))roundEuro(d.getElementById('tprice'));if(code.includes('saveTraining'))roundEuro(d.getElementById('eprice'))},true)}}
 function initFrame(){if(observer)observer.disconnect();patchChild();try{observer=new MutationObserver(patchChild);observer.observe(frame.contentDocument.body,{childList:true,subtree:true})}catch(_){}}
 frame.addEventListener('load',initFrame);
 window.installWod=installWod;window.closeCal=closeCal;window.moveCal=moveCal;window.pick=pick;window.today=today;
 if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).catch(()=>{}));
-syncInstall();
 </script>
 </body>
 </html>
