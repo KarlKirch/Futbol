@@ -67,6 +67,9 @@ jobs:
       - name: Add dynamic round columns to leaderboard
         run: python dynamic_round_leaderboard.py
 
+      - name: Add paid entry and bank transfer UI
+        run: python add_paid_entry.py
+
       - name: Add user chat
         run: python add_chat_feature.py
 
@@ -84,8 +87,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Isolate chat from core startup"
+            git commit -m "Add paid entry and bank transfer UI"
             git push
           fi
 
-# Refresh: isolate chat from startup
+# Refresh: paid entry
