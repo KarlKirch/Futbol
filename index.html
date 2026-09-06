@@ -1990,6 +1990,37 @@
 
 <div id="toast" class="hidden"></div>
 
+<script data-futbol-startup-guard>
+(function () {
+  function showStartupError(message) {
+    var loading = document.getElementById('loadingScreen');
+    var app = document.getElementById('app');
+    var gate = document.getElementById('nameGate');
+    if (!loading || loading.classList.contains('hidden')) return;
+    if (app && !app.classList.contains('hidden')) return;
+    if (gate && !gate.classList.contains('hidden')) return;
+    loading.innerHTML = '<main><div class="card"><h2>Futboli käivitamine ebaõnnestus</h2>' +
+      '<div class="error">' + String(message || 'Tundmatu käivitusviga').replace(/[&<>"']/g, function (ch) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[ch];
+      }) + '</div>' +
+      '<button class="btn btn-block" type="button" onclick="location.reload()">Proovi uuesti</button></div></main>';
+  }
+  window.addEventListener('error', function (event) {
+    showStartupError(event && event.message ? event.message : 'JavaScripti viga');
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event && event.reason;
+    showStartupError(reason && reason.message ? reason.message : String(reason || 'Käivitusviga'));
+  });
+  window.setTimeout(function () {
+    var loading = document.getElementById('loadingScreen');
+    if (loading && !loading.classList.contains('hidden')) {
+      showStartupError('Käivitamine võtab liiga kaua. Kontrolli internetiühendust ja proovi uuesti.');
+    }
+  }, 15000);
+})();
+</script>
+
 <script>
 
 
@@ -2703,6 +2734,7 @@ function isStandaloneMode() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
 }
+
 
 
 
@@ -5991,210 +6023,6 @@ renderLeaderboard = function() {
 
 
 
-// FUTBOL USER CHAT
-let chatMessages = [];
-let chatChannel = null;
-let chatUnreadCount = 0;
-let chatLoading = false;
-let chatPollTimer = null;
-
-function chatTimestamp(value) {
-  try {
-    return new Intl.DateTimeFormat('et-EE', {
-      timeZone: 'Europe/Tallinn',
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(value));
-  } catch (_) {
-    return '';
-  }
-}
-
-function ensureChatUI() {
-  const rules = document.getElementById('tab-rules');
-  const main = rules ? rules.parentElement : document.querySelector('main');
-  if (main && !document.getElementById('tab-chat')) {
-    const section = document.createElement('section');
-    section.id = 'tab-chat';
-    section.className = 'hidden';
-    section.innerHTML =
-      '<h2>Chat</h2>' +
-      '<div class="card chat-card">' +
-        '<div id="chatMessages" class="chat-messages"><div class="chat-empty">Laen vestlust…</div></div>' +
-        '<div class="chat-composer">' +
-          '<textarea id="chatInput" class="chat-input" maxlength="500" rows="2" placeholder="Kirjuta sõnum…"></textarea>' +
-          '<button id="chatSendButton" class="chat-send-btn" type="button" onclick="sendChatMessage()">Saada</button>' +
-        '</div>' +
-        '<div class="chat-note">Sõnumi maksimaalne pikkus on 500 märki.</div>' +
-      '</div>';
-    if (rules) main.insertBefore(section, rules);
-    else main.appendChild(section);
-  }
-
-  const nav = document.querySelector('.bottom-nav-inner');
-  const rulesButton = document.getElementById('nav-rules');
-  if (nav && !document.getElementById('nav-chat')) {
-    const button = document.createElement('button');
-    button.id = 'nav-chat';
-    button.className = 'nav-btn';
-    button.type = 'button';
-    button.onclick = () => showTab('chat');
-    button.innerHTML = 'Chat<span id="chatUnread" class="chat-unread hidden">0</span>';
-    if (rulesButton) nav.insertBefore(button, rulesButton);
-    else nav.appendChild(button);
-  }
-
-  if (nav) nav.style.gridTemplateColumns = 'repeat(4, 1fr)';
-}
-
-function isChatOpen() {
-  const tab = document.getElementById('tab-chat');
-  return !!tab && !tab.classList.contains('hidden');
-}
-
-function updateChatUnread() {
-  const badge = document.getElementById('chatUnread');
-  if (!badge) return;
-  if (chatUnreadCount > 0) {
-    badge.textContent = chatUnreadCount > 99 ? '99+' : String(chatUnreadCount);
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
-  }
-}
-
-function renderChatMessages(scrollToBottom = false) {
-  const box = document.getElementById('chatMessages');
-  if (!box) return;
-  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
-
-  if (!chatMessages.length) {
-    box.innerHTML = '<div class="chat-empty">Vestlus on veel tühi. Kirjuta esimene sõnum.</div>';
-    return;
-  }
-
-  box.innerHTML = chatMessages.map(item => {
-    const own = currentUser && item.user_id === currentUser.id;
-    const name = own ? 'Sina' : playerName(item.user_id);
-    return '<div class="chat-message ' + (own ? 'own' : '') + '">' +
-      '<div class="chat-meta">' + esc(name) + ' · ' + esc(chatTimestamp(item.created_at)) + '</div>' +
-      '<div class="chat-bubble">' + esc(item.message) + '</div>' +
-    '</div>';
-  }).join('');
-
-  if (scrollToBottom || nearBottom) box.scrollTop = box.scrollHeight;
-}
-
-async function loadChatMessages(scrollToBottom = false) {
-  if (!currentUser || chatLoading) return;
-  chatLoading = true;
-  try {
-    const result = await sb
-      .from('chat_messages')
-      .select('id,user_id,message,created_at')
-      .order('created_at', { ascending: false })
-      .limit(100);
-    if (result.error) throw result.error;
-    chatMessages = (result.data || []).reverse();
-    renderChatMessages(scrollToBottom);
-  } catch (error) {
-    const box = document.getElementById('chatMessages');
-    if (box) box.innerHTML = '<div class="chat-empty">Vestluse laadimine ebaõnnestus: ' + esc(friendlyError(error)) + '</div>';
-  } finally {
-    chatLoading = false;
-  }
-}
-
-function appendChatMessage(message, fromRealtime = false) {
-  if (!message || chatMessages.some(item => String(item.id) === String(message.id))) return;
-  chatMessages.push(message);
-  chatMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  if (chatMessages.length > 100) chatMessages = chatMessages.slice(-100);
-
-  const own = currentUser && message.user_id === currentUser.id;
-  if (fromRealtime && !own && !isChatOpen()) {
-    chatUnreadCount += 1;
-    updateChatUnread();
-  }
-  renderChatMessages(isChatOpen());
-}
-
-function subscribeChat() {
-  if (!currentUser || chatChannel) return;
-  chatChannel = sb
-    .channel('futbol-user-chat')
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'chat_messages'
-    }, payload => appendChatMessage(payload.new, true))
-    .subscribe();
-
-  if (!chatPollTimer) {
-    chatPollTimer = window.setInterval(() => {
-      if (currentUser && isChatOpen()) loadChatMessages(false);
-    }, 15000);
-  }
-}
-
-async function sendChatMessage() {
-  if (!currentUser || !currentPlayer) return;
-  const input = document.getElementById('chatInput');
-  const button = document.getElementById('chatSendButton');
-  const message = String(input?.value || '').trim();
-  if (!message) return;
-  if (message.length > 500) {
-    toast('Sõnum võib olla kuni 500 märki.');
-    return;
-  }
-
-  if (button) button.disabled = true;
-  try {
-    const result = await sb
-      .from('chat_messages')
-      .insert({ user_id: currentUser.id, message })
-      .select('id,user_id,message,created_at')
-      .single();
-    if (result.error) throw result.error;
-    if (input) input.value = '';
-    appendChatMessage(result.data, false);
-  } catch (error) {
-    toast('Sõnumi saatmine ebaõnnestus: ' + friendlyError(error));
-  } finally {
-    if (button) button.disabled = false;
-    if (input) input.focus();
-  }
-}
-
-const __chatBaseShowTab = showTab;
-showTab = function(name) {
-  ensureChatUI();
-
-  if (name === 'chat') {
-    ['games', 'table', 'rules', 'admin'].forEach(tabName => {
-      document.getElementById('tab-' + tabName)?.classList.add('hidden');
-      document.getElementById('nav-' + tabName)?.classList.remove('active');
-    });
-    document.getElementById('tab-chat')?.classList.remove('hidden');
-    document.getElementById('nav-chat')?.classList.add('active');
-    chatUnreadCount = 0;
-    updateChatUnread();
-    loadChatMessages(true);
-    subscribeChat();
-    return;
-  }
-
-  document.getElementById('tab-chat')?.classList.add('hidden');
-  document.getElementById('nav-chat')?.classList.remove('active');
-  __chatBaseShowTab(name);
-};
-
-ensureChatUI();
-setTimeout(() => {
-  if (currentUser) subscribeChat();
-}, 1200);
 
 
 init();
@@ -6217,6 +6045,8 @@ setInterval(() => {
 }, 30000);
 
 </script>
+
+<script src="./chat.js?v=4"></script>
 
 </body>
 </html>
