@@ -8,7 +8,7 @@ if marker not in source:
 
 prefix = source.split(marker, 1)[0]
 
-fixed_tail = r'''# Refresh only countdown text between full data refreshes.
+fixed_tail = r"""# Refresh only countdown text between full data refreshes.
 interval_anchor = '''setInterval(() => {
 
   if (
@@ -43,6 +43,6 @@ if "refreshCountdowns();\n  }\n}, 30000);" not in text:
     text = text.replace(interval_anchor, interval_replacement, 1)
 
 path.write_text(text, encoding="utf-8")
-'''
+"""
 
 exec(compile(prefix + fixed_tail, "add_core_ux_fixed.py", "exec"))
