@@ -2714,6 +2714,7 @@ function isStandaloneMode() {
 
 
 
+
 function renderPlayerSummary() {
 
   const container = document.getElementById("playerSummary");
@@ -6012,8 +6013,8 @@ function chatTimestamp(value) {
 }
 
 function ensureChatUI() {
-  const main = document.querySelector('main');
   const rules = document.getElementById('tab-rules');
+  const main = rules ? rules.parentElement : document.querySelector('main');
   if (main && !document.getElementById('tab-chat')) {
     const section = document.createElement('section');
     section.id = 'tab-chat';
