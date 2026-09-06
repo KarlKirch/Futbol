@@ -1,15 +1,15 @@
 {
-  "id": "/Futbol/wod/crossfit-app",
+  "id": "/Futbol/wod/crossfit-app-v3",
   "name": "CrossFit",
   "short_name": "CrossFit",
   "description": "CrossFit treeningutele registreerimine ja treeningute haldus.",
-  "start_url": "/Futbol/wod/app.html?source=crossfit-pwa-v2",
+  "start_url": "/Futbol/wod/app.html?source=crossfit-pwa-v3",
   "scope": "/Futbol/wod/",
   "display": "standalone",
   "background_color": "#111315",
   "theme_color": "#d94a32",
   "categories": ["fitness", "sports"],
   "icons": [
-    {"src":"/Futbol/wod/crossfit-icon.svg?v=2","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {"src":"/Futbol/wod/crossfit-icon.svg?v=3","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ]
 }
