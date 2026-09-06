@@ -43,4 +43,4 @@ jobs:
             git push
           fi
 
-# Refresh: core UX runner fix
+# Refresh: core UX runner syntax fixed
