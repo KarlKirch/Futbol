@@ -121,6 +121,9 @@ jobs:
       - name: Optimize live score refresh
         run: python optimize_live_refresh.py
 
+      - name: Add instant standings refresh
+        run: python add_instant_standings_refresh.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -129,8 +132,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Speed up FotMob live scores"
+            git commit -m "Refresh standings instantly after FT"
             git push
           fi
 
-# Refresh: fast live score updates
+# Refresh: instant standings after official FotMob FT
