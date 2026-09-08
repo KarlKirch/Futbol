@@ -106,6 +106,9 @@ jobs:
       - name: Adapt statistics UI to FotMob
         run: python fix_stats_fotmob_ui.py
 
+      - name: Add bonus answer visibility
+        run: python add_bonus_visibility.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -114,8 +117,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Use complete FotMob match statistics"
+            git commit -m "Add locked bonus answer visibility"
             git push
           fi
 
-# Refresh: FotMob all-competition form statistics
+# Refresh: bonus visibility after lock
