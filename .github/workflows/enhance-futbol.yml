@@ -118,6 +118,9 @@ jobs:
       - name: Improve chat presence reliability
         run: python fix_chat_presence_reliability.py
 
+      - name: Optimize live score refresh
+        run: python optimize_live_refresh.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -126,8 +129,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Improve chat online presence"
+            git commit -m "Speed up FotMob live scores"
             git push
           fi
 
-# Refresh: reliable chat online presence
+# Refresh: fast live score updates
