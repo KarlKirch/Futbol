@@ -112,6 +112,9 @@ jobs:
       - name: Add FotMob live match center
         run: python add_live_match_center.py
 
+      - name: Add chat online presence
+        run: python add_chat_presence.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -120,8 +123,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add FotMob live match center"
+            git commit -m "Add chat online presence"
             git push
           fi
 
-# Refresh: FotMob live match center
+# Refresh: chat online presence
