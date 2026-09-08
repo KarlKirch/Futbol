@@ -7,9 +7,51 @@
   var chatUnreadCount = 0;
   var chatLoading = false;
   var chatPollTimer = null;
+  var chatOnlineUsers = new Set();
+  var chatPresenceTracked = false;
+
+  // FUTBOL CHAT ONLINE PRESENCE
 
   function byId(id) {
     return document.getElementById(id);
+  }
+
+  function ensureChatPresenceStyles() {
+    if (byId('chatPresenceStyles')) return;
+    var style = document.createElement('style');
+    style.id = 'chatPresenceStyles';
+    style.textContent =
+      '.chat-online-dot{' +
+        'display:inline-block;width:8px;height:8px;margin-left:6px;border-radius:50%;' +
+        'background:#28b463;box-shadow:0 0 0 2px rgba(40,180,99,.14);vertical-align:1px;' +
+      '}' +
+      '.chat-online-dot[title]{cursor:default;}';
+    document.head.appendChild(style);
+  }
+
+  function chatPresenceDot(userId) {
+    var id = String(userId || '');
+    if (!id || !chatOnlineUsers.has(id)) return '';
+    return '<span class="chat-online-dot" title="Online" aria-label="Online"></span>';
+  }
+
+  function syncChatPresence() {
+    if (!chatChannel || typeof chatChannel.presenceState !== 'function') return;
+    try {
+      var state = chatChannel.presenceState() || {};
+      var next = new Set();
+      Object.keys(state).forEach(function (key) {
+        var entries = Array.isArray(state[key]) ? state[key] : [];
+        entries.forEach(function (entry) {
+          var id = String((entry && entry.player_id) || key || '');
+          if (id) next.add(id);
+        });
+      });
+      chatOnlineUsers = next;
+      renderChatMessages(false);
+    } catch (error) {
+      console.error('Chat presence sync error', error);
+    }
   }
 
   function chatTimestamp(value) {
@@ -28,6 +70,7 @@
 
   function ensureChatUI() {
     try {
+      ensureChatPresenceStyles();
       var rules = byId('tab-rules');
       var main = rules ? rules.parentElement : null;
       if (main && !byId('tab-chat')) {
@@ -103,7 +146,7 @@
       var adminDelete = (typeof adminVerified !== 'undefined' && adminVerified)
         ? '<button class="chat-admin-delete" type="button" onclick="adminDeleteChatMessageDeep(' + item.id + ')">Kustuta</button>' : '';
       return '<div class="chat-message ' + (own ? 'own' : '') + '">' +
-        '<div class="chat-meta"><span class="chat-name">' + esc(name) + '</span>' + favorite + (item.pinned ? '<span class="chat-pin-label">📌 TEADAANNE</span>' : '') + '<span class="chat-time"> · ' + esc(chatTimestamp(item.created_at)) + '</span>' + adminDelete + '</div>' +
+        '<div class="chat-meta"><span class="chat-name">' + esc(name) + '</span>' + chatPresenceDot(item.user_id) + favorite + (item.pinned ? '<span class="chat-pin-label">📌 TEADAANNE</span>' : '') + '<span class="chat-time"> · ' + esc(chatTimestamp(item.created_at)) + '</span>' + adminDelete + '</div>' +
         '<div class="chat-bubble">' + esc(item.message) + '</div>' +
       '</div>';
     }).join('');
@@ -148,8 +191,9 @@
   function subscribeChat() {
     if (!currentUser || chatChannel || typeof sb === 'undefined') return;
     try {
+      var presenceKey = String((currentPlayer && currentPlayer.id) || currentUser.id);
       chatChannel = sb
-        .channel('futbol-user-chat')
+        .channel('futbol-user-chat', { config: { presence: { key: presenceKey } } })
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -165,7 +209,20 @@
           schema: 'public',
           table: 'chat_messages'
         }, function () { loadChatMessages(false); })
-        .subscribe();
+        .on('presence', { event: 'sync' }, syncChatPresence)
+        .on('presence', { event: 'join' }, syncChatPresence)
+        .on('presence', { event: 'leave' }, syncChatPresence)
+        .subscribe(function (status) {
+          if (status !== 'SUBSCRIBED' || !chatChannel || chatPresenceTracked) return;
+          chatPresenceTracked = true;
+          Promise.resolve(chatChannel.track({
+            player_id: presenceKey,
+            online_at: new Date().toISOString()
+          })).catch(function (error) {
+            chatPresenceTracked = false;
+            console.error('Chat presence track error', error);
+          });
+        });
     } catch (error) {
       console.error('Chat realtime error', error);
       chatChannel = null;
@@ -247,12 +304,15 @@
       window.__futbolChatWrapped = true;
     }
 
-    window.setTimeout(function () {
+    var presenceAttempts = 0;
+    var presenceBootstrap = window.setInterval(function () {
+      presenceAttempts += 1;
       if (currentUser && currentPlayer) subscribeChat();
-    }, 1500);
+      if (chatChannel || presenceAttempts >= 15) window.clearInterval(presenceBootstrap);
+    }, 1000);
   }
 
-  window.futbolReloadChat = function () { loadChatMessages(false); };
+  window.futbolReloadChat = function () { loadChatMessages(false); subscribeChat(); };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', installChat, { once: true });
