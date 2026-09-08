@@ -109,6 +109,9 @@ jobs:
       - name: Add bonus answer visibility
         run: python add_bonus_visibility.py
 
+      - name: Add FotMob live match center
+        run: python add_live_match_center.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -117,8 +120,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add locked bonus answer visibility"
+            git commit -m "Add FotMob live match center"
             git push
           fi
 
-# Refresh: bonus visibility after lock
+# Refresh: FotMob live match center
