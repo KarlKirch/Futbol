@@ -9,8 +9,11 @@
   var chatPollTimer = null;
   var chatOnlineUsers = new Set();
   var chatPresenceTracked = false;
+  var chatRecentlyActive = new Map();
+  var chatPresenceRetryTimer = null;
 
   // FUTBOL CHAT ONLINE PRESENCE
+  // FUTBOL CHAT PRESENCE RELIABILITY
 
   function byId(id) {
     return document.getElementById(id);
@@ -29,10 +32,28 @@
     document.head.appendChild(style);
   }
 
+  function markChatRecentlyActive(userId, value) {
+    var id = String(userId || '');
+    if (!id) return;
+    var stamp = value ? new Date(value).getTime() : Date.now();
+    if (!Number.isFinite(stamp)) stamp = Date.now();
+    chatRecentlyActive.set(id, stamp);
+  }
+
+  function chatUserLooksOnline(userId) {
+    var id = String(userId || '');
+    if (!id) return false;
+    if (chatOnlineUsers.has(id)) return true;
+    var last = Number(chatRecentlyActive.get(id) || 0);
+    return last > 0 && Date.now() - last < 90000;
+  }
+
   function chatPresenceDot(userId) {
     var id = String(userId || '');
-    if (!id || !chatOnlineUsers.has(id)) return '';
-    return '<span class="chat-online-dot" title="Online" aria-label="Online"></span>';
+    if (!id || !chatUserLooksOnline(id)) return '';
+    var exact = chatOnlineUsers.has(id);
+    var label = exact ? 'Online' : 'Äsja aktiivne';
+    return '<span class="chat-online-dot" title="' + label + '" aria-label="' + label + '"></span>';
   }
 
   function syncChatPresence() {
@@ -165,6 +186,9 @@
         .limit(100);
       if (result.error) throw result.error;
       chatMessages = (result.data || []).reverse();
+      chatMessages.forEach(function (item) {
+        if (item && item.user_id && item.created_at) markChatRecentlyActive(item.user_id, item.created_at);
+      });
       renderChatMessages(!!scrollToBottom);
     } catch (error) {
       var box = byId('chatMessages');
@@ -177,6 +201,7 @@
   function appendChatMessage(message, fromRealtime) {
     if (!message || chatMessages.some(function (item) { return String(item.id) === String(message.id); })) return;
     chatMessages.push(message);
+    markChatRecentlyActive(message.user_id, message.created_at);
     chatMessages.sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); });
     if (chatMessages.length > 100) chatMessages = chatMessages.slice(-100);
 
@@ -213,15 +238,42 @@
         .on('presence', { event: 'join' }, syncChatPresence)
         .on('presence', { event: 'leave' }, syncChatPresence)
         .subscribe(function (status) {
-          if (status !== 'SUBSCRIBED' || !chatChannel || chatPresenceTracked) return;
-          chatPresenceTracked = true;
-          Promise.resolve(chatChannel.track({
-            player_id: presenceKey,
-            online_at: new Date().toISOString()
-          })).catch(function (error) {
+          if (status === 'SUBSCRIBED' && chatChannel) {
+            if (chatPresenceRetryTimer) {
+              window.clearTimeout(chatPresenceRetryTimer);
+              chatPresenceRetryTimer = null;
+            }
+            if (!chatPresenceTracked) {
+              chatPresenceTracked = true;
+              Promise.resolve(chatChannel.track({
+                player_id: presenceKey,
+                online_at: new Date().toISOString()
+              })).then(function () {
+                markChatRecentlyActive(presenceKey);
+                syncChatPresence();
+              }).catch(function (error) {
+                chatPresenceTracked = false;
+                console.error('Chat presence track error', error);
+              });
+            }
+            return;
+          }
+
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             chatPresenceTracked = false;
-            console.error('Chat presence track error', error);
-          });
+            chatOnlineUsers = new Set();
+            var stale = chatChannel;
+            chatChannel = null;
+            if (stale && typeof sb.removeChannel === 'function') {
+              Promise.resolve(sb.removeChannel(stale)).catch(function () {});
+            }
+            if (!chatPresenceRetryTimer) {
+              chatPresenceRetryTimer = window.setTimeout(function () {
+                chatPresenceRetryTimer = null;
+                if (currentUser) subscribeChat();
+              }, 2500);
+            }
+          }
         });
     } catch (error) {
       console.error('Chat realtime error', error);
@@ -231,6 +283,7 @@
     if (!chatPollTimer) {
       chatPollTimer = window.setInterval(function () {
         if (currentUser && isChatOpen()) loadChatMessages(false);
+        if (isChatOpen()) renderChatMessages(false);
       }, 15000);
     }
   }

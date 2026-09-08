@@ -1,8 +1,8 @@
-const CACHE_NAME = "futbol-champions-v10";
+const CACHE_NAME = "futbol-champions-v11";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./chat.js?v=7",
+  "./chat.js?v=8",
   "./manifest.webmanifest",
   "./app-icon.svg",
   "./favicon.ico"
