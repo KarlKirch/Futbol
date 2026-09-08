@@ -3313,6 +3313,7 @@ function isStandaloneMode() {
 
 
 
+
 function renderPlayerSummary() {
 
   const container = document.getElementById("playerSummary");
@@ -8164,6 +8165,10 @@ const liveMatchState = new Map();
 let liveMatchRefreshPending = null;
 let liveMatchPollTimer = null;
 let liveMatchLastFetchAt = 0;
+let liveMatchCachedLoadAt = 0;
+let liveMatchRealtimeChannel = null;
+
+// FUTBOL FAST LIVE REFRESH
 
 function liveRelevantMatches() {
   if (!Array.isArray(matches)) return [];
@@ -8176,6 +8181,63 @@ function liveRelevantMatches() {
     if (state?.finished && now - kickoff < 5 * 60 * 60 * 1000) return true;
     return kickoff >= now - 6 * 60 * 60 * 1000 && kickoff <= now + 12 * 60 * 60 * 1000;
   }).slice(0, 24);
+}
+
+
+function applyLiveRows(rows) {
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    if (row && row.match_id) liveMatchState.set(row.match_id, row);
+  });
+  renderLiveMatchCenter();
+  decorateLiveMatchCards();
+}
+
+async function loadCachedLiveState(force = false) {
+  if (!currentUser || !currentPlayer || typeof sb === 'undefined') return;
+  if (!force && Date.now() - liveMatchCachedLoadAt < 2500) return;
+  const relevant = liveRelevantMatches();
+  if (!relevant.length) return;
+  liveMatchCachedLoadAt = Date.now();
+  try {
+    const result = await sb
+      .from('match_live_state')
+      .select('match_id,fotmob_match_id,page_url,phase,live_time,started,finished,cancelled,home_score,away_score,events,source,source_updated_at,last_error,updated_at')
+      .in('match_id', relevant.map(match => match.id));
+    if (result.error) throw result.error;
+    applyLiveRows(result.data || []);
+  } catch (error) {
+    console.error('Live vahemälu laadimine', error);
+  }
+}
+
+function subscribeLiveStateRealtime() {
+  if (!currentUser || liveMatchRealtimeChannel || typeof sb === 'undefined') return;
+  try {
+    liveMatchRealtimeChannel = sb
+      .channel('futbol-live-match-state')
+      .on('postgres_changes', { event:'*', schema:'public', table:'match_live_state' }, payload => {
+        const row = payload?.new;
+        if (!row || !row.match_id) return;
+        if (!Array.isArray(matches) || !matches.some(match => match.id === row.match_id)) return;
+        liveMatchState.set(row.match_id, row);
+        renderLiveMatchCenter();
+        decorateLiveMatchCards();
+      })
+      .subscribe();
+  } catch (error) {
+    console.error('Live realtime', error);
+    liveMatchRealtimeChannel = null;
+  }
+}
+
+function liveFreshnessText(state) {
+  const raw = state?.source_updated_at || state?.updated_at;
+  const ts = raw ? new Date(raw).getTime() : NaN;
+  if (!Number.isFinite(ts)) return 'Live-andmed: FotMob · uuendub automaatselt';
+  const seconds = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (seconds < 5) return 'Live-andmed: FotMob · uuendatud äsja';
+  if (seconds < 60) return 'Live-andmed: FotMob · uuendatud ' + seconds + ' s tagasi';
+  return 'Live-andmed: FotMob · uuendatud ' + Math.floor(seconds / 60) + ' min tagasi';
 }
 
 function liveStatusText(state) {
@@ -8290,7 +8352,7 @@ function liveGameHtml(match, state) {
     liveScorersHtml(state) +
     provisionalPredictionHtml(match, state) +
     liveEventsHtml(state) +
-    '<div class="live-data-note">Live-andmed: FotMob · uuendub automaatselt</div>' +
+    '<div class="live-data-note">' + esc(liveFreshnessText(state)) + '</div>' +
   '</div>';
 }
 
@@ -8351,17 +8413,16 @@ async function refreshLiveMatchCenter(force = false) {
   const relevant = liveRelevantMatches();
   if (!relevant.length) return;
   if (liveMatchRefreshPending) return liveMatchRefreshPending;
-  if (!force && Date.now() - liveMatchLastFetchAt < 10000) return;
+  if (!force && Date.now() - liveMatchLastFetchAt < 8000) return;
   liveMatchLastFetchAt = Date.now();
   liveMatchRefreshPending = (async () => {
     try {
-      const result = await sb.functions.invoke('ucl-live', { body: { match_ids: relevant.map(match => match.id), force } });
+      const result = await sb.functions.invoke('ucl-live-fast', { body: { match_ids: relevant.map(match => match.id), force } });
       if (result.error || !result.data || result.data.ok === false) throw result.error || new Error(result.data?.error || 'Live-andmete laadimine ebaõnnestus');
-      (result.data.matches || []).forEach(row => liveMatchState.set(row.match_id, row));
-      renderLiveMatchCenter();
-      decorateLiveMatchCards();
+      applyLiveRows(result.data.matches || []);
     } catch (error) {
-      console.error('FotMob live center', error);
+      console.error('FotMob fast live center', error);
+      await loadCachedLiveState(true);
     } finally {
       liveMatchRefreshPending = null;
     }
@@ -8370,12 +8431,17 @@ async function refreshLiveMatchCenter(force = false) {
 }
 
 function ensureLiveMatchPolling() {
+  subscribeLiveStateRealtime();
   if (!liveMatchPollTimer) {
-    liveMatchPollTimer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') refreshLiveMatchCenter(false);
-    }, 30000);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') refreshLiveMatchCenter(true);
+    liveMatchPollTimer = window.setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+      await loadCachedLiveState(false);
+      refreshLiveMatchCenter(false);
+    }, 10000);
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState !== 'visible') return;
+      await loadCachedLiveState(true);
+      refreshLiveMatchCenter(true);
     });
   }
 }
@@ -8386,8 +8452,14 @@ renderGames = function() {
   renderLiveMatchCenter();
   decorateLiveMatchCards();
   ensureLiveMatchPolling();
-  window.setTimeout(() => refreshLiveMatchCenter(false), 0);
+  window.setTimeout(async () => {
+    await loadCachedLiveState(true);
+    refreshLiveMatchCenter(false);
+  }, 0);
 };
+
+
+
 
 
 
@@ -8416,6 +8488,8 @@ setInterval(() => {
 }, 30000);
 
 </script>
+
+<script src="./chat.js?v=8"></script>
 
 <script src="./chat.js?v=8"></script>
 
