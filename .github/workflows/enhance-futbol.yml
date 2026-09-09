@@ -130,6 +130,9 @@ jobs:
       - name: Add admin recovery access
         run: python add_admin_recovery_access.py
 
+      - name: Add FotMob match lineups
+        run: python add_match_lineups.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -138,8 +141,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add admin recovery access"
+            git commit -m "Add FotMob match lineups"
             git push
           fi
 
-# Refresh: admin recovery access
+# Refresh: FotMob match lineups
