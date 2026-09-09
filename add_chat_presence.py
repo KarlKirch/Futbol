@@ -6,10 +6,12 @@ index_path = Path('index.html')
 sw_path = Path('sw.js')
 
 MARKER = '// FUTBOL CHAT ONLINE PRESENCE'
+RELIABLE_MARKER = '// FUTBOL RELIABLE CHAT PRESENCE'
 
 if chat_path.exists():
     text = chat_path.read_text(encoding='utf-8')
 
+    # Base Supabase Realtime Presence support.
     if MARKER not in text:
         text = text.replace(
             "  var chatPollTimer = null;\n",
@@ -92,16 +94,118 @@ if chat_path.exists():
         if old_timeout in text:
             text = text.replace(old_timeout, new_timeout, 1)
 
-        chat_path.write_text(text, encoding='utf-8')
+    # Reliable presence layer: DB heartbeat + realtime + recent-message fallback.
+    if RELIABLE_MARKER not in text:
+        text = text.replace(
+            "  var chatPresenceTracked = false;\n",
+            "  var chatPresenceTracked = false;\n  var chatDbOnlineUsers = new Set();\n  var chatReliablePresenceStarted = false;\n  var chatPresenceHeartbeatTimer = null;\n  var chatPresencePollTimer = null;\n\n  " + RELIABLE_MARKER + "\n",
+            1,
+        )
+
+        old_dot = r'''  function chatPresenceDot(userId) {
+    var id = String(userId || '');
+    if (!id || !chatOnlineUsers.has(id)) return '';
+    return '<span class="chat-online-dot" title="Online" aria-label="Online"></span>';
+  }
+'''
+        new_dot = r'''  function wasRecentlyActiveInChat(userId) {
+    var id = String(userId || '');
+    if (!id || !Array.isArray(chatMessages)) return false;
+    var cutoff = Date.now() - 90000;
+    for (var i = chatMessages.length - 1; i >= 0; i -= 1) {
+      var item = chatMessages[i];
+      if (String(item.user_id || '') !== id) continue;
+      var ts = new Date(item.created_at).getTime();
+      return Number.isFinite(ts) && ts >= cutoff;
+    }
+    return false;
+  }
+
+  function chatPresenceDot(userId) {
+    var id = String(userId || '');
+    if (!id) return '';
+    var online = chatOnlineUsers.has(id) || chatDbOnlineUsers.has(id) || wasRecentlyActiveInChat(id);
+    if (!online) return '';
+    return '<span class="chat-online-dot" title="Online" aria-label="Online"></span>';
+  }
+
+  async function heartbeatChatPresence() {
+    if (!currentUser || !currentPlayer || typeof sb === 'undefined' || document.visibilityState === 'hidden') return;
+    var id = String(currentPlayer.id || currentUser.id);
+    if (!id) return;
+    try {
+      var result = await sb.from('player_presence').upsert({
+        player_id: id,
+        last_seen: new Date().toISOString()
+      }, { onConflict: 'player_id' });
+      if (result.error) throw result.error;
+      chatDbOnlineUsers.add(id);
+    } catch (error) {
+      console.error('Chat presence heartbeat error', error);
+    }
+  }
+
+  async function loadReliableChatPresence() {
+    if (!currentUser || typeof sb === 'undefined') return;
+    try {
+      var cutoffIso = new Date(Date.now() - 75000).toISOString();
+      var result = await sb
+        .from('player_presence')
+        .select('player_id,last_seen')
+        .gte('last_seen', cutoffIso);
+      if (result.error) throw result.error;
+      var next = new Set();
+      (result.data || []).forEach(function (row) {
+        if (row && row.player_id) next.add(String(row.player_id));
+      });
+      chatDbOnlineUsers = next;
+      renderChatMessages(false);
+    } catch (error) {
+      console.error('Chat presence load error', error);
+    }
+  }
+
+  function startReliableChatPresence() {
+    if (chatReliablePresenceStarted) return;
+    chatReliablePresenceStarted = true;
+    heartbeatChatPresence();
+    loadReliableChatPresence();
+    chatPresenceHeartbeatTimer = window.setInterval(heartbeatChatPresence, 25000);
+    chatPresencePollTimer = window.setInterval(loadReliableChatPresence, 15000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        heartbeatChatPresence();
+        loadReliableChatPresence();
+      }
+    });
+  }
+'''
+        if old_dot in text:
+            text = text.replace(old_dot, new_dot, 1)
+
+        text = text.replace(
+            "  function installChat() {\n    ensureChatUI();\n",
+            "  function installChat() {\n    ensureChatUI();\n    startReliableChatPresence();\n",
+            1,
+        )
+
+        # Ensure newly logged-in sessions also start/refresh heartbeat via chat bootstrap.
+        text = text.replace(
+            "      if (currentUser && currentPlayer) subscribeChat();\n",
+            "      if (currentUser && currentPlayer) { heartbeatChatPresence(); loadReliableChatPresence(); subscribeChat(); }\n",
+            1,
+        )
+
+    chat_path.write_text(text, encoding='utf-8')
 
 # Force browsers to fetch the updated standalone chat bundle.
 if index_path.exists():
     text = index_path.read_text(encoding='utf-8')
-    text = re.sub(r'chat\.js\?v=\d+', 'chat.js?v=7', text)
+    text = re.sub(r'chat\.js\?v=\d+', 'chat.js?v=8', text)
     index_path.write_text(text, encoding='utf-8')
 
 if sw_path.exists():
     text = sw_path.read_text(encoding='utf-8')
-    text = re.sub(r'chat\.js\?v=\d+', 'chat.js?v=7', text)
-    text = re.sub(r'const CACHE_NAME = "futbol-champions-v\d+";', 'const CACHE_NAME = "futbol-champions-v10";', text)
+    text = re.sub(r'chat\.js\?v=\d+', 'chat.js?v=8', text)
+    text = re.sub(r'const CACHE_NAME = "futbol-champions-v\d+";', 'const CACHE_NAME = "futbol-champions-v11";', text)
     sw_path.write_text(text, encoding='utf-8')
