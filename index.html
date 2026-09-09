@@ -2370,6 +2370,34 @@
       .lineup-shirt { width:18px; height:18px; font-size:8px; }
     }
 
+
+
+    /* FUTBOL LINEUP BUTTON UX V2 */
+    .match-lineups-details { background:#fff; }
+    .match-lineups-details > summary {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:11px 14px;
+      color:#46524a;
+      font-size:11px;
+      font-weight:900;
+    }
+    .match-lineups-details > summary::after {
+      margin-left:auto;
+      float:none;
+    }
+    .live-game-card .match-lineups-details {
+      border-width:1px 0 0;
+      border-color:#edf1ee;
+      border-radius:0;
+      background:#fff;
+    }
+    .live-game-card .match-lineups-details > summary {
+      padding:11px 14px;
+    }
+
   </style>
 </head>
 
@@ -8716,7 +8744,7 @@ function matchLineupsDetailsHtml(match, state) {
   if (!state?.available || !state?.home || !state?.away) return '';
   const open = matchLineupOpen.has(String(match.id)) ? ' open' : '';
   return '<details class="match-lineups-details"' + open + ' ontoggle="rememberMatchLineupOpen(\'' + esc(match.id) + '\', this.open)">' +
-    '<summary>Koosseisud</summary>' +
+    '<summary>Koosseis</summary>' +
     '<div class="match-lineups-content">' +
       '<div class="match-lineups-kicker">FotMobi ametlik algkoosseis</div>' +
       '<div class="match-lineups-grid">' +
@@ -8765,8 +8793,10 @@ if (__lineupBaseLiveGameHtml) {
     const lineup = matchLineupState.get(match.id);
     if (!lineup?.available) return html;
     const block = matchLineupsDetailsHtml(match, lineup);
-    const marker = '<div class="live-data-note">';
-    if (html.includes(marker)) html = html.replace(marker, block + marker);
+    const eventsMarker = '<details class="live-events">';
+    const noteMarker = '<div class="live-data-note">';
+    if (html.includes(eventsMarker)) html = html.replace(eventsMarker, block + eventsMarker);
+    else if (html.includes(noteMarker)) html = html.replace(noteMarker, block + noteMarker);
     else html += block;
     return html;
   };
