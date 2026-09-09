@@ -164,11 +164,17 @@ function playerRow(player:any) {
   const name = String(player?.name || player?.fullName || player?.playerName || "").trim();
   if (!name) return null;
   const rawNumber = player?.shirtNumber ?? player?.shirt ?? player?.shirtNo ?? null;
+  const vertical = player?.verticalLayout || player?.vertical_layout || null;
+  const layoutX = Number(vertical?.x);
+  const layoutY = Number(vertical?.y);
   return {
     id: player?.id ?? player?.playerId ?? null,
     name,
     shirt_number: rawNumber == null ? null : String(rawNumber),
     position: String(player?.position || player?.role || "").trim() || null,
+    position_id: player?.positionId ?? player?.position_id ?? null,
+    layout_x: Number.isFinite(layoutX) ? layoutX : null,
+    layout_y: Number.isFinite(layoutY) ? layoutY : null,
   };
 }
 
