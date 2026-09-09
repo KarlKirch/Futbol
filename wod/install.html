@@ -5,47 +5,80 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#d94a32">
 <title>Paigalda CrossFit</title>
-<link rel="manifest" href="./crossfit-v5.webmanifest">
-<link rel="icon" href="./crossfit-icon.svg?v=5" type="image/svg+xml">
+<link rel="manifest" href="./crossfit-v6.webmanifest?v=1">
+<link rel="icon" href="./crossfit-icon.svg?v=6" type="image/svg+xml">
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:22px;background:#e9eeeb;color:#152019;font-family:system-ui,-apple-system,Segoe UI,sans-serif}.card{width:min(430px,100%);padding:24px;background:#fff;border:1px solid #dce4df;border-radius:24px;box-shadow:0 10px 35px #0001}.icon{width:76px;height:76px;border-radius:20px;display:block;margin-bottom:18px}h1{margin:0 0 8px;font-size:29px}.text{color:#647169;line-height:1.5;font-size:14px}.btn{width:100%;min-height:52px;margin-top:18px;border:0;border-radius:14px;background:#d94a32;color:#fff;font-weight:900;font-size:16px}.btn:disabled{opacity:.55}.status{margin-top:12px;padding:11px 12px;border-radius:12px;background:#f2f5f3;color:#4e5c54;font-size:13px;line-height:1.45}.link{display:block;margin-top:12px;text-align:center;color:#536159;font-size:13px;font-weight:800;text-decoration:none}
+*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:22px;background:#e9eeeb;color:#152019;font-family:system-ui,-apple-system,Segoe UI,sans-serif}.card{width:min(430px,100%);padding:24px;background:#fff;border:1px solid #dce4df;border-radius:24px;box-shadow:0 10px 35px #0001}.icon{width:76px;height:76px;border-radius:20px;display:block;margin-bottom:18px}h1{margin:0 0 8px;font-size:29px}.text{color:#647169;line-height:1.5;font-size:14px}.btn{width:100%;min-height:52px;margin-top:14px;border:0;border-radius:14px;background:#d94a32;color:#fff;font-weight:900;font-size:16px}.btn.secondary{background:#edf1ef;color:#26312b}.btn:disabled{opacity:.55}.status{margin-top:12px;padding:11px 12px;border-radius:12px;background:#f2f5f3;color:#4e5c54;font-size:13px;line-height:1.45}.link{display:block;margin-top:12px;text-align:center;color:#536159;font-size:13px;font-weight:800;text-decoration:none}
 </style>
 </head>
 <body>
 <div class="card">
-  <img class="icon" src="./crossfit-icon.svg?v=5" alt="CrossFit">
+  <img class="icon" src="./crossfit-icon.svg?v=6" alt="CrossFit">
   <h1>Paigalda CrossFit</h1>
   <div class="text">Lisa CrossFit telefoni avakuvale eraldi rakendusena.</div>
+  <button id="chromeBtn" class="btn secondary">Ava Google Chrome'is</button>
   <button id="installBtn" class="btn" disabled>Valmistan paigaldust ette…</button>
-  <div id="status" class="status">Kontrollin, kas rakendust saab paigaldada.</div>
-  <a class="link" href="./app.html?v=20">Ava CrossFit ilma paigaldamata</a>
+  <div id="status" class="status">Kontrollin paigaldusvõimalust.</div>
+  <a class="link" href="./app.html?v=21">Ava CrossFit ilma paigaldamata</a>
 </div>
 <script>
 'use strict';
-let deferredPrompt=null;
+let deferredPrompt=null,installedThisSession=false;
 const btn=document.getElementById('installBtn');
+const chromeBtn=document.getElementById('chromeBtn');
 const status=document.getElementById('status');
-const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-function ready(){btn.disabled=false;btn.textContent='Lisa CrossFit avakuvale';status.textContent='Rakendus on paigaldamiseks valmis.'}
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const installUrl='https://karlkirch.github.io/Futbol/wod/install.html?v=2';
+function ready(){btn.disabled=false;btn.textContent='Lisa CrossFit avakuvale';status.textContent='CrossFit on paigaldamiseks valmis.'}
+function openChrome(){
+  const target='intent://karlkirch.github.io/Futbol/wod/install.html?v=2#Intent;scheme=https;package=com.android.chrome;end';
+  location.href=target;
+}
+chromeBtn.addEventListener('click',openChrome);
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;ready()});
-window.addEventListener('appinstalled',()=>{deferredPrompt=null;btn.disabled=true;btn.textContent='CrossFit on paigaldatud';status.textContent='Valmis. CrossFit on telefoni avakuval.'});
+window.addEventListener('appinstalled',()=>{installedThisSession=true;deferredPrompt=null;btn.disabled=true;btn.textContent='CrossFit paigaldatud';status.textContent='Valmis. CrossFit lisati telefoni rakendusena.'});
 btn.addEventListener('click',async()=>{
-  if(standalone()){status.textContent='CrossFit on juba rakendusena avatud.';return}
-  if(!deferredPrompt){status.textContent='Paigaldusnupp pole veel aktiveerunud. Sulge Chrome täielikult, ava see leht uuesti ja oota umbes 30 sekundit.';return}
+  if(installedThisSession)return;
+  if(isStandalone()){
+    status.textContent='See leht on avanenud juba mõne rakenduse aknas, tõenäoliselt Futbolis. Vajuta esmalt „Ava Google Chrome’is“.';
+    return;
+  }
+  if(!deferredPrompt){
+    status.textContent='Chrome ei paku veel paigaldusakent. Vajuta „Ava Google Chrome’is“, oota paar sekundit ja proovi uuesti.';
+    return;
+  }
   deferredPrompt.prompt();
   const choice=await deferredPrompt.userChoice;
   deferredPrompt=null;
-  if(choice.outcome==='accepted'){btn.disabled=true;btn.textContent='Paigaldan…';status.textContent='Paigaldus kinnitatud.'}else{btn.disabled=false;btn.textContent='Lisa CrossFit avakuvale';status.textContent='Paigaldus katkestati.'}
+  if(choice.outcome==='accepted'){
+    btn.disabled=true;btn.textContent='Paigaldan…';status.textContent='Paigaldus kinnitatud.';
+  }else{
+    btn.disabled=false;btn.textContent='Lisa CrossFit avakuvale';status.textContent='Paigaldus katkestati.';
+  }
 });
 (async()=>{
-  if(standalone()){btn.disabled=true;btn.textContent='CrossFit on paigaldatud';status.textContent='CrossFit on juba rakendusena avatud.';return}
-  if(!('serviceWorker'in navigator)){btn.disabled=true;btn.textContent='Brauser ei toeta paigaldust';status.textContent='Ava see leht Google Chrome’is.';return}
+  if(isStandalone()){
+    btn.disabled=false;
+    btn.textContent='Lisa CrossFit avakuvale';
+    status.textContent='Leht avanes rakenduse aknas. See ei tähenda, et CrossFit on paigaldatud. Vajuta „Ava Google Chrome’is“.';
+    return;
+  }
+  if(!('serviceWorker'in navigator)){
+    btn.disabled=true;btn.textContent='Brauser ei toeta paigaldust';status.textContent='Ava see leht Google Chrome’is.';return;
+  }
   try{
-    const reg=await navigator.serviceWorker.register('./sw.js?v=8',{scope:'./',updateViaCache:'none'});
+    const reg=await navigator.serviceWorker.register('./sw.js?v=9',{scope:'./',updateViaCache:'none'});
     await reg.update().catch(()=>{});
     await navigator.serviceWorker.ready;
-    setTimeout(()=>{if(!deferredPrompt){btn.disabled=false;btn.textContent='Proovi paigaldada';status.textContent='Kui paigaldusaken kohe ei ilmu, hoia seda lehte Chrome’is avatuna umbes 30 sekundit ja proovi uuesti.'}},3000);
-  }catch(e){btn.disabled=false;btn.textContent='Proovi uuesti';status.textContent='Teenuse töötaja käivitamine ebaõnnestus. Värskenda lehte ja proovi uuesti.'}
+    setTimeout(()=>{
+      if(!deferredPrompt&&!installedThisSession){
+        btn.disabled=false;btn.textContent='Proovi paigaldada';
+        status.textContent='Kui paigaldusaken ei ilmu, vajuta esmalt „Ava Google Chrome’is“. Vana Futboli rakendus võib selle lingi enda sisse avada.';
+      }
+    },2500);
+  }catch(_){
+    btn.disabled=false;btn.textContent='Proovi uuesti';status.textContent='Värskenda lehte ja proovi uuesti.';
+  }
 })();
 </script>
 </body>
