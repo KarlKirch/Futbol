@@ -1,0 +1,46 @@
+name: Refine lineup pitch
+
+on:
+  push:
+    paths:
+      - ".github/workflows/refine-lineup-pitch.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refine-lineup-pitch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Apply tactical lineup pitch
+        run: python refine_lineup_pitch.py
+
+      - name: Verify generated code
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          index = Path('index.html').read_text(encoding='utf-8')
+          edge = Path('supabase/functions/ucl-lineups/index.ts').read_text(encoding='utf-8')
+          assert '/* FUTBOL LINEUP PITCH UX V3 */' in index
+          assert 'function lineupPitchHtml(starters, formation)' in index
+          assert 'layout_x' in index and 'layout_y' in index
+          assert 'verticalLayout' in edge
+          assert 'layout_x:' in edge and 'layout_y:' in edge
+          print('Tactical lineup pitch verified')
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html supabase/functions/ucl-lineups/index.ts
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "Show lineups on tactical pitch"
+            git push
+          fi
