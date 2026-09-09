@@ -127,6 +127,9 @@ jobs:
       - name: Add instant standings refresh
         run: python add_instant_standings_refresh.py
 
+      - name: Add admin recovery access
+        run: python add_admin_recovery_access.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -135,8 +138,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Add chat notifications"
+            git commit -m "Add admin recovery access"
             git push
           fi
 
-# Refresh: chat notifications
+# Refresh: admin recovery access
