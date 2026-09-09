@@ -1,0 +1,43 @@
+name: Fix mobile chat tab
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-mobile-chat-tab.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply mobile chat tab fix
+        run: python fix_mobile_chat_tab.py
+
+      - name: Verify fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          assert text.count('<script src="./chat.js?v=8"></script>') == 1
+          assert '/* FUTBOL CHAT TAB EXCLUSIVITY FIX */' in text
+          assert 'if (chatTab) chatTab.classList.add("hidden");' in text
+          assert 'if (chatNav) chatNav.classList.remove("active");' in text
+          print('Verification passed')
+          PY
+
+      - name: Commit index update
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix mobile chat tab exclusivity"
+          git push
