@@ -4270,6 +4270,12 @@ function openPlayerStats(playerId) {
 
 function showTab(name) {
 
+  /* FUTBOL CHAT TAB EXCLUSIVITY FIX */
+  const chatTab = document.getElementById("tab-chat");
+  const chatNav = document.getElementById("nav-chat");
+  if (chatTab) chatTab.classList.add("hidden");
+  if (chatNav) chatNav.classList.remove("active");
+
   [
     "games",
     "table",
@@ -9060,37 +9066,20 @@ setInterval(() => {
 
 </script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
 
-<script src="./chat.js?v=8"></script>
-
-<script src="./chat.js?v=8"></script>
 
 <script src="./chat.js?v=8"></script>
 
