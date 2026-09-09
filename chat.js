@@ -11,6 +11,11 @@
   var chatPresenceTracked = false;
   var chatRecentlyActive = new Map();
   var chatPresenceRetryTimer = null;
+  var chatNotificationEnabled = false;
+  var chatNotificationLoading = false;
+  var chatDeepLinkOpened = false;
+
+  // FUTBOL CHAT PUSH NOTIFICATIONS
 
   // FUTBOL CHAT ONLINE PRESENCE
   // FUTBOL CHAT PRESENCE RELIABILITY
@@ -28,7 +33,13 @@
         'display:inline-block;width:8px;height:8px;margin-left:6px;border-radius:50%;' +
         'background:#28b463;box-shadow:0 0 0 2px rgba(40,180,99,.14);vertical-align:1px;' +
       '}' +
-      '.chat-online-dot[title]{cursor:default;}';
+      '.chat-online-dot[title]{cursor:default;}' +
+      '.chat-notify-panel{margin-top:12px;padding:12px;border:1px solid #d9e5de;border-radius:13px;background:#f8fbf9;}' +
+      '.chat-notify-title{font-size:13px;font-weight:900;color:#172019;}' +
+      '.chat-notify-text{margin-top:4px;color:#68746c;font-size:11px;line-height:1.45;}' +
+      '.chat-notify-on{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;background:#e8f4ed;color:#176b43;font-size:10px;}' +
+      '.chat-notify-btn{margin-top:8px;min-height:36px;padding:0 11px;border:0;border-radius:10px;background:#176b43;color:white;font-size:12px;font-weight:850;}' +
+      '.chat-notify-btn.muted{background:#edf2ef;color:#172019;}';
     document.head.appendChild(style);
   }
 
@@ -75,6 +86,139 @@
     }
   }
 
+  function chatPushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification !== 'undefined';
+  }
+
+  async function currentChatPushSubscription() {
+    if (!chatPushSupported()) return null;
+    var registration = await navigator.serviceWorker.ready;
+    return await registration.pushManager.getSubscription();
+  }
+
+  async function refreshChatNotificationState() {
+    if (!currentUser || typeof sb === 'undefined' || !chatPushSupported()) {
+      chatNotificationEnabled = false;
+      renderChatNotificationPanel();
+      return;
+    }
+    try {
+      var subscription = await currentChatPushSubscription();
+      if (!subscription) {
+        chatNotificationEnabled = false;
+      } else {
+        var result = await sb.from('push_subscriptions')
+          .select('chat_enabled')
+          .eq('user_id', currentUser.id)
+          .eq('endpoint', subscription.endpoint)
+          .maybeSingle();
+        if (result.error) throw result.error;
+        chatNotificationEnabled = !!(result.data && result.data.chat_enabled);
+      }
+    } catch (error) {
+      console.error('Chat notification state error', error);
+      chatNotificationEnabled = false;
+    }
+    renderChatNotificationPanel();
+  }
+
+  function renderChatNotificationPanel() {
+    var mount = byId('chatNotificationPanel');
+    if (!mount) return;
+    if (!chatPushSupported()) {
+      mount.innerHTML = '<div class="chat-notify-title">Chati teavitused</div><div class="chat-notify-text">See brauser ei toeta taustateavitusi.</div>';
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      mount.innerHTML = '<div class="chat-notify-title">Chati teavitused</div><div class="chat-notify-text">Teavitused on brauseris blokeeritud. Luba need selle lehe saidiseadetes.</div>';
+      return;
+    }
+    if (chatNotificationEnabled) {
+      mount.innerHTML = '<div class="chat-notify-title">Chati teavitused <span class="chat-notify-on">Sees</span></div>' +
+        '<div class="chat-notify-text">Uue sõnumi korral tuleb selles seadmes teavitus ka siis, kui Futbol pole ees.</div>' +
+        '<button class="chat-notify-btn muted" type="button" onclick="window.futbolMuteChatNotifications()">Vaigista</button>';
+    } else {
+      mount.innerHTML = '<div class="chat-notify-title">Chati teavitused</div>' +
+        '<div class="chat-notify-text">Lülita sisse, et saada uue chatisõnumi kohta teavitus selles seadmes.</div>' +
+        '<button class="chat-notify-btn" type="button" onclick="window.futbolEnableChatNotifications()">Lülita sisse</button>';
+    }
+  }
+
+  async function enableChatNotifications() {
+    if (chatNotificationLoading || !currentUser || typeof sb === 'undefined') return;
+    if (!chatPushSupported()) {
+      toast('See brauser ei toeta taustateavitusi.');
+      return;
+    }
+    chatNotificationLoading = true;
+    try {
+      var permission = Notification.permission;
+      if (permission !== 'granted') permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        renderChatNotificationPanel();
+        return;
+      }
+      var registration = await navigator.serviceWorker.ready;
+      var subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(FUTBOL_VAPID_PUBLIC)
+        });
+      }
+      var data = subscription.toJSON();
+      var result = await sb.from('push_subscriptions').upsert({
+        user_id: currentUser.id,
+        endpoint: subscription.endpoint,
+        p256dh: data.keys && data.keys.p256dh ? data.keys.p256dh : '',
+        auth: data.keys && data.keys.auth ? data.keys.auth : '',
+        chat_enabled: true,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'endpoint' });
+      if (result.error) throw result.error;
+      chatNotificationEnabled = true;
+      renderChatNotificationPanel();
+      toast('Chati teavitused on sisse lülitatud.');
+    } catch (error) {
+      console.error('Enable chat notifications error', error);
+      toast('Chati teavituste sisselülitamine ebaõnnestus: ' + friendlyError(error));
+    } finally {
+      chatNotificationLoading = false;
+    }
+  }
+
+  async function muteChatNotifications() {
+    if (chatNotificationLoading || !currentUser || typeof sb === 'undefined') return;
+    chatNotificationLoading = true;
+    try {
+      var subscription = await currentChatPushSubscription();
+      if (subscription) {
+        var result = await sb.from('push_subscriptions')
+          .update({ chat_enabled: false, updated_at: new Date().toISOString() })
+          .eq('user_id', currentUser.id)
+          .eq('endpoint', subscription.endpoint);
+        if (result.error) throw result.error;
+      }
+      chatNotificationEnabled = false;
+      renderChatNotificationPanel();
+      toast('Chati teavitused on vaigistatud.');
+    } catch (error) {
+      console.error('Mute chat notifications error', error);
+      toast('Chati teavituste vaigistamine ebaõnnestus: ' + friendlyError(error));
+    } finally {
+      chatNotificationLoading = false;
+    }
+  }
+
+  function notifyChatRecipients(messageId) {
+    if (!messageId || typeof sb === 'undefined' || !sb.functions) return;
+    Promise.resolve(sb.functions.invoke('send-chat-notification', { body: { message_id: messageId } }))
+      .then(function (result) {
+        if (result && result.error) console.error('Chat push invoke error', result.error);
+      })
+      .catch(function (error) { console.error('Chat push invoke error', error); });
+  }
+
   function chatTimestamp(value) {
     try {
       return new Intl.DateTimeFormat('et-EE', {
@@ -107,6 +251,7 @@
               '<button id="chatSendButton" class="chat-send-btn" type="button">Saada</button>' +
             '</div>' +
             '<div class="chat-note">Sõnumi maksimaalne pikkus on 500 märki.</div>' +
+            '<div id="chatNotificationPanel" class="chat-notify-panel"></div>' +
           '</div>';
         main.insertBefore(section, rules);
       }
@@ -309,6 +454,7 @@
       if (result.error) throw result.error;
       if (input) input.value = '';
       appendChatMessage(result.data, false);
+      notifyChatRecipients(result.data && result.data.id);
     } catch (error) {
       toast('Sõnumi saatmine ebaõnnestus: ' + friendlyError(error));
     } finally {
@@ -328,6 +474,7 @@
 
   function showChat() {
     ensureChatUI();
+    refreshChatNotificationState();
     hideCoreTabs();
     var tab = byId('tab-chat');
     var nav = byId('nav-chat');
@@ -341,6 +488,8 @@
 
   function installChat() {
     ensureChatUI();
+    renderChatNotificationPanel();
+    window.setTimeout(refreshChatNotificationState, 1800);
     if (typeof showTab === 'function' && !window.__futbolChatWrapped) {
       var baseShowTab = showTab;
       showTab = function (name) {
@@ -360,12 +509,21 @@
     var presenceAttempts = 0;
     var presenceBootstrap = window.setInterval(function () {
       presenceAttempts += 1;
-      if (currentUser && currentPlayer) subscribeChat();
+      if (currentUser && currentPlayer) {
+        subscribeChat();
+        if (!chatDeepLinkOpened && new URLSearchParams(window.location.search).get('tab') === 'chat') {
+          chatDeepLinkOpened = true;
+          showChat();
+          try { history.replaceState(null, '', window.location.pathname + window.location.hash); } catch (_) {}
+        }
+      }
       if (chatChannel || presenceAttempts >= 15) window.clearInterval(presenceBootstrap);
     }, 1000);
   }
 
-  window.futbolReloadChat = function () { loadChatMessages(false); subscribeChat(); };
+  window.futbolReloadChat = function () { loadChatMessages(false); subscribeChat(); refreshChatNotificationState(); };
+  window.futbolEnableChatNotifications = enableChatNotifications;
+  window.futbolMuteChatNotifications = muteChatNotifications;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', installChat, { once: true });
