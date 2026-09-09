@@ -9,6 +9,12 @@
   var chatPollTimer = null;
   var chatOnlineUsers = new Set();
   var chatPresenceTracked = false;
+  var chatDbOnlineUsers = new Set();
+  var chatReliablePresenceStarted = false;
+  var chatPresenceHeartbeatTimer = null;
+  var chatPresencePollTimer = null;
+
+  // FUTBOL RELIABLE CHAT PRESENCE
   var chatRecentlyActive = new Map();
   var chatPresenceRetryTimer = null;
   var chatNotificationEnabled = false;
@@ -488,6 +494,7 @@
 
   function installChat() {
     ensureChatUI();
+    startReliableChatPresence();
     renderChatNotificationPanel();
     window.setTimeout(refreshChatNotificationState, 1800);
     if (typeof showTab === 'function' && !window.__futbolChatWrapped) {
