@@ -118,6 +118,9 @@ jobs:
       - name: Improve chat presence reliability
         run: python fix_chat_presence_reliability.py
 
+      - name: Add chat notifications
+        run: python add_chat_notifications.py
+
       - name: Optimize live score refresh
         run: python optimize_live_refresh.py
 
@@ -132,8 +135,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Refresh standings instantly after FT"
+            git commit -m "Add chat notifications"
             git push
           fi
 
-# Refresh: instant standings after official FotMob FT
+# Refresh: chat notifications
