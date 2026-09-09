@@ -1,4 +1,4 @@
-const CACHE='crossfit-v1';
+const CACHE='crossfit-v2';
 const ASSETS=['./app.html','./index.html','./crossfit.webmanifest','./crossfit-icon.svg'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>(k.startsWith('wod-')||k.startsWith('crossfit-'))&&k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim()})())});
