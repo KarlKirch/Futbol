@@ -5,6 +5,10 @@ const STATIC_ASSETS = [
   "./chat.js?v=9",
   "./ui-polish.css?v=1",
   "./ui-polish.js?v=1",
+  "./live-standings.css?v=1",
+  "./live-standings.js?v=1",
+  "./ui-polish.css?v=1",
+  "./ui-polish.js?v=1",
   "./manifest.webmanifest",
   "./app-icon.svg",
   "./favicon.ico"
