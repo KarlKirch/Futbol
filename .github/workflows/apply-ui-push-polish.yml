@@ -1,0 +1,36 @@
+name: Apply UI and push polish
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-ui-push-polish.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply focused UI and chat push patch
+        run: python apply_ui_push_polish.py
+      - name: Verify patch
+        run: |
+          grep -q './ui-polish.css?v=1' index.html
+          grep -q './ui-polish.js?v=1' index.html
+          test "$(grep -o '<script src="./chat.js?v=9"></script>' index.html | wc -l)" -eq 1
+          grep -q 'var attempts = 0;' chat.js
+          grep -q 'futbol-champions-v12' sw.js
+      - name: Commit focused changes
+        run: |
+          if git diff --quiet -- index.html chat.js sw.js; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html chat.js sw.js
+          git commit -m 'Polish Futbol UI and chat push reliability'
+          git push
