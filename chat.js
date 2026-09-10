@@ -218,11 +218,29 @@
 
   function notifyChatRecipients(messageId) {
     if (!messageId || typeof sb === 'undefined' || !sb.functions) return;
-    Promise.resolve(sb.functions.invoke('send-chat-notification', { body: { message_id: messageId } }))
-      .then(function (result) {
-        if (result && result.error) console.error('Chat push invoke error', result.error);
-      })
-      .catch(function (error) { console.error('Chat push invoke error', error); });
+
+    var attempts = 0;
+    function sendAttempt() {
+      attempts += 1;
+      Promise.resolve(sb.functions.invoke('send-chat-notification', { body: { message_id: messageId } }))
+        .then(function (result) {
+          var failed = result && (result.error || (result.data && result.data.ok === false));
+          if (failed && attempts < 2) {
+            window.setTimeout(sendAttempt, 1800);
+            return;
+          }
+          if (failed) console.error('Chat push invoke error', result.error || result.data);
+        })
+        .catch(function (error) {
+          if (attempts < 2) {
+            window.setTimeout(sendAttempt, 1800);
+            return;
+          }
+          console.error('Chat push invoke error', error);
+        });
+    }
+
+    sendAttempt();
   }
 
   function chatTimestamp(value) {
