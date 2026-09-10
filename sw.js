@@ -7,8 +7,6 @@ const STATIC_ASSETS = [
   "./ui-polish.js?v=1",
   "./live-standings.css?v=1",
   "./live-standings.js?v=1",
-  "./ui-polish.css?v=1",
-  "./ui-polish.js?v=1",
   "./manifest.webmanifest",
   "./app-icon.svg",
   "./favicon.ico"
