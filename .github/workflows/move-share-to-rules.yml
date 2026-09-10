@@ -1,0 +1,39 @@
+name: Move share card to rules
+
+on:
+  push:
+    paths:
+      - '.github/workflows/move-share-to-rules.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move share card
+        run: python move_share_to_rules.py
+      - name: Verify
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          assert '/* FUTBOL MOVE SHARE CARD TO RULES */' in text
+          assert "rulesTab.appendChild(freshShareCard)" in text
+          assert text.count('<script src="./chat.js?v=8"></script>') == 1
+          assert '/* FUTBOL CHAT TAB EXCLUSIVITY FIX */' in text
+          PY
+      - name: Commit
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Move share card to rules"
+          git push
