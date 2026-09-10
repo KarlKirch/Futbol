@@ -9045,6 +9045,27 @@ document.addEventListener('visibilitychange', () => {
 
 
 
+
+/* FUTBOL MOVE SHARE CARD TO RULES */
+function moveShareCardToRules() {
+  const rulesTab = document.getElementById('tab-rules');
+  const playerSummary = document.getElementById('playerSummary');
+  if (!rulesTab || !playerSummary) return;
+
+  const freshShareCard = playerSummary.querySelector('.share-card');
+  rulesTab.querySelectorAll('.share-card[data-rules-share="1"]').forEach(node => node.remove());
+  if (!freshShareCard) return;
+
+  freshShareCard.setAttribute('data-rules-share', '1');
+  rulesTab.appendChild(freshShareCard);
+}
+
+const __rulesShareBaseRenderPlayerSummary = renderPlayerSummary;
+renderPlayerSummary = function() {
+  __rulesShareBaseRenderPlayerSummary();
+  moveShareCardToRules();
+};
+
 init();
 
 setInterval(() => {
