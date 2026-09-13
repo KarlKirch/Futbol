@@ -1,0 +1,36 @@
+name: Wire next-round admin
+
+on:
+  push:
+    paths:
+      - 'next-round-admin.js'
+      - 'wire_next_round_admin.py'
+      - '.github/workflows/wire-next-round-admin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire next-round admin helper
+        run: python wire_next_round_admin.py
+      - name: Verify wiring
+        run: |
+          grep -q 'next-round-admin.js?v=1' index.html
+          grep -q 'next-round-admin.js?v=1' sw.js
+          grep -q 'futbol-champions-v13' sw.js
+      - name: Commit focused changes
+        run: |
+          if git diff --quiet -- index.html sw.js; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html sw.js
+          git commit -m 'Enable next-round admin selection'
+          git push
