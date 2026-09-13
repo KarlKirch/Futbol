@@ -1,0 +1,38 @@
+name: Wire admin session
+
+on:
+  push:
+    paths:
+      - 'admin-session.js'
+      - 'wire_admin_session.py'
+      - '.github/workflows/wire-admin-session.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire admin session helper
+        run: python wire_admin_session.py
+      - name: Verify wiring
+        run: |
+          test "$(grep -c 'admin-session.js?v=1' index.html)" -eq 1
+          test "$(grep -c 'admin-session.js?v=1' sw.js)" -eq 1
+          grep -q 'futbol-champions-v14' sw.js
+          test "$(grep -c 'chat.js?v=9' index.html)" -eq 1
+          ! grep -q './wod/' sw.js || true
+      - name: Commit focused changes
+        run: |
+          if git diff --quiet -- index.html sw.js; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html sw.js
+          git commit -m 'Enable persistent admin session'
+          git push
