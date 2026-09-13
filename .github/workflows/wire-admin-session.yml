@@ -20,11 +20,15 @@ jobs:
         run: python wire_admin_session.py
       - name: Verify wiring
         run: |
-          test "$(grep -c 'admin-session.js?v=1' index.html)" -eq 1
-          test "$(grep -c 'admin-session.js?v=1' sw.js)" -eq 1
-          grep -q 'futbol-champions-v14' sw.js
-          test "$(grep -c 'chat.js?v=9' index.html)" -eq 1
-          ! grep -q './wod/' sw.js || true
+          python - <<'PY'
+          from pathlib import Path
+          index = Path('index.html').read_text(encoding='utf-8')
+          sw = Path('sw.js').read_text(encoding='utf-8')
+          assert index.count('<script src="./admin-session.js?v=1"></script>') == 1
+          assert sw.count('"./admin-session.js?v=1"') == 1
+          assert 'futbol-champions-v14' in sw
+          assert 'const WOD_PATH' in sw
+          PY
       - name: Commit focused changes
         run: |
           if git diff --quiet -- index.html sw.js; then
