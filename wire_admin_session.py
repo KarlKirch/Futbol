@@ -13,7 +13,7 @@ if script not in text:
 
 sw = Path('sw.js')
 sw_text = sw.read_text(encoding='utf-8')
-sw_text = re.sub(r'const CACHE_NAME = "futbol-champions-v\\d+";', 'const CACHE_NAME = "futbol-champions-v14";', sw_text, count=1)
+sw_text = re.sub(r'const CACHE_NAME = "futbol-champions-v\d+";', 'const CACHE_NAME = "futbol-champions-v14";', sw_text, count=1)
 asset = '  "./admin-session.js?v=1",\n'
 if './admin-session.js?v=1' not in sw_text:
     marker = '  "./next-round-admin.js?v=1",\n'
