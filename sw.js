@@ -1,4 +1,4 @@
-const CACHE_NAME = "futbol-champions-v14";
+const CACHE_NAME = "futbol-champions-v15";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   "./live-standings.js?v=1",
   "./next-round-admin.js?v=1",
   "./admin-session.js?v=1",
+  "./account-admin-tools.js?v=1",
   "./manifest.webmanifest",
   "./app-icon.svg",
   "./favicon.ico"
