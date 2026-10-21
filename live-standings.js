@@ -2,6 +2,65 @@
 (function () {
   'use strict';
 
+  // FUTBOL LEADERBOARD SCROLL PRESERVATION
+  let leaderboardHorizontalInteracting = false;
+  let leaderboardDeferredRender = false;
+  let leaderboardSavedScrollLeft = 0;
+  let leaderboardReleaseTimer = null;
+
+  function leaderboardScrollWrap() {
+    return document.querySelector('#leaderboard .table-wrap');
+  }
+
+  function restoreLeaderboardScroll(left) {
+    const wrap = leaderboardScrollWrap();
+    if (!wrap) return;
+    const max = Math.max(0, wrap.scrollWidth - wrap.clientWidth);
+    const next = Math.min(Math.max(0, Number(left || 0)), max);
+    wrap.scrollLeft = next;
+    leaderboardSavedScrollLeft = next;
+    window.requestAnimationFrame(function () {
+      const current = leaderboardScrollWrap();
+      if (!current) return;
+      const currentMax = Math.max(0, current.scrollWidth - current.clientWidth);
+      current.scrollLeft = Math.min(Math.max(0, leaderboardSavedScrollLeft), currentMax);
+    });
+  }
+
+  function beginLeaderboardHorizontalInteraction(event) {
+    const target = event && event.target && event.target.closest ? event.target.closest('#leaderboard .table-wrap') : null;
+    if (!target) return;
+    if (leaderboardReleaseTimer) window.clearTimeout(leaderboardReleaseTimer);
+    leaderboardHorizontalInteracting = true;
+    leaderboardSavedScrollLeft = target.scrollLeft || 0;
+  }
+
+  function endLeaderboardHorizontalInteraction() {
+    const wrap = leaderboardScrollWrap();
+    if (wrap) leaderboardSavedScrollLeft = wrap.scrollLeft || 0;
+    if (leaderboardReleaseTimer) window.clearTimeout(leaderboardReleaseTimer);
+    leaderboardReleaseTimer = window.setTimeout(function () {
+      leaderboardHorizontalInteracting = false;
+      if (leaderboardDeferredRender) {
+        leaderboardDeferredRender = false;
+        try { renderLeaderboard(); } catch (error) { console.error('Deferred leaderboard render error', error); }
+      }
+    }, 220);
+  }
+
+  document.addEventListener('touchstart', beginLeaderboardHorizontalInteraction, { passive: true });
+  document.addEventListener('touchend', endLeaderboardHorizontalInteraction, { passive: true });
+  document.addEventListener('touchcancel', endLeaderboardHorizontalInteraction, { passive: true });
+  document.addEventListener('pointerdown', beginLeaderboardHorizontalInteraction, { passive: true });
+  document.addEventListener('pointerup', endLeaderboardHorizontalInteraction, { passive: true });
+  document.addEventListener('pointercancel', endLeaderboardHorizontalInteraction, { passive: true });
+  document.addEventListener('scroll', function (event) {
+    const target = event && event.target;
+    if (target && target.matches && target.matches('#leaderboard .table-wrap')) {
+      leaderboardSavedScrollLeft = target.scrollLeft || 0;
+    }
+  }, true);
+
   function provisionalPoints(prediction, home, away) {
     const ph = Number(prediction?.home_score);
     const pa = Number(prediction?.away_score);
@@ -99,6 +158,12 @@
   renderLeaderboard = function() {
     const container = document.getElementById('leaderboard');
     if (!container) return;
+    if (leaderboardHorizontalInteracting) {
+      leaderboardDeferredRender = true;
+      return;
+    }
+    const previousWrap = container.querySelector('.table-wrap');
+    if (previousWrap) leaderboardSavedScrollLeft = previousWrap.scrollLeft || leaderboardSavedScrollLeft || 0;
     if (!leaderboard.length) {
       container.innerHTML = '<div class="card"><div class="notice">Ametlik tabel on veel tühi. Tabelisse jõuavad makse kinnitanud osalejad.</div></div>';
       return;
@@ -162,6 +227,7 @@
     });
 
     container.innerHTML = html + '</tbody></table></div>' + (typeof recordsCardHtmlDeep === 'function' ? recordsCardHtmlDeep() : '');
+    restoreLeaderboardScroll(leaderboardSavedScrollLeft);
   };
 
   if (typeof renderLiveMatchCenter === 'function' && !window.__futbolLiveStandingsWrapped) {
