@@ -33,6 +33,7 @@ function canonical(value: string) {
     "borussia dortmund": "dortmund", "b dortmund": "dortmund", "dortmund": "dortmund",
     "bayern munich": "bayern", "bayern munchen": "bayern", "bayern": "bayern",
     "paris saint germain": "paris", "psg": "paris", "paris": "paris",
+    "psv eindhoven": "psv", "psv": "psv",
     "porto": "porto", "fc porto": "porto",
     "rb leipzig": "leipzig", "leipzig": "leipzig",
     "slovan bratislava": "slovan bratislava", "s bratislava": "slovan bratislava",
@@ -119,14 +120,16 @@ function parseDate(value: any) {
   return Number.isFinite(t) ? t : 0;
 }
 
-function findFixture(page: any, match: any) {
+function findFixture(page: any, match: any, homeTeamId = "", awayTeamId = "") {
   const kickoff = parseDate(match.kickoff_at);
   const home = canonical(match.home_team);
   const away = canonical(match.away_team);
   let best: any = null;
   let bestDiff = Number.POSITIVE_INFINITY;
   for (const f of fixtureList(page)) {
-    if (canonical(f?.home?.name || "") !== home || canonical(f?.away?.name || "") !== away) continue;
+    const idMatch = !!homeTeamId && !!awayTeamId && String(f?.home?.id || "") === String(homeTeamId) && String(f?.away?.id || "") === String(awayTeamId);
+    const nameMatch = canonical(f?.home?.name || "") === home && canonical(f?.away?.name || "") === away;
+    if (!idMatch && !nameMatch) continue;
     const fixtureTime = parseDate(f?.status?.utcTime);
     const diff = Math.abs(fixtureTime - kickoff);
     if (!kickoff || !fixtureTime) { if (!best) best = f; continue; }
@@ -337,9 +340,10 @@ Deno.serve(async (req: Request) => {
       let pageUrl = cleanPageUrl(previous?.page_url), lastError = "";
       try {
         const teamId = teamIds.get(assetKey(match.home_team));
+        const awayTeamId = teamIds.get(assetKey(match.away_team)) || "";
         if (!teamId) throw new Error(`FotMobi klubi ID puudub: ${match.home_team}`);
         const teamPage = await loadTeamPage(teamId);
-        fixture = findFixture(teamPage, match);
+        fixture = findFixture(teamPage, match, teamId, awayTeamId);
         if (!fixture && !fotmobId) throw new Error("FotMobi mängu ei leitud");
         if (fixture) {
           fotmobId = String(fixture?.id || fotmobId || "");
